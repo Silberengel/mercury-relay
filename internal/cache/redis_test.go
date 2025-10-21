@@ -15,7 +15,7 @@ func TestRedisCacheStoreEvent(t *testing.T) {
 	t.Run("Store new event", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
 
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
 		err := mockCache.StoreEvent(event)
@@ -35,7 +35,7 @@ func TestRedisCacheStoreEvent(t *testing.T) {
 	t.Run("Store duplicate event", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
 
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
 		// Store event twice
@@ -53,7 +53,7 @@ func TestRedisCacheStoreEvent(t *testing.T) {
 func TestRedisCacheGetEvents(t *testing.T) {
 	t.Run("Filter by authors", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub1 := eg.GetRandomNpub()
 		npub2 := eg.GetRandomNpub()
@@ -86,7 +86,7 @@ func TestRedisCacheGetEvents(t *testing.T) {
 
 	t.Run("Filter by kinds", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub := eg.GetRandomNpub()
 
@@ -118,7 +118,7 @@ func TestRedisCacheGetEvents(t *testing.T) {
 
 	t.Run("Complex filter (authors + kinds + time)", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub1 := eg.GetRandomNpub()
 		npub2 := eg.GetRandomNpub()
@@ -154,7 +154,7 @@ func TestRedisCacheGetEvents(t *testing.T) {
 
 	t.Run("Limit parameter", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub := eg.GetRandomNpub()
 
@@ -181,7 +181,7 @@ func TestRedisCacheGetEvents(t *testing.T) {
 func TestRedisCacheDeleteEvent(t *testing.T) {
 	t.Run("Delete existing event", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
@@ -210,7 +210,7 @@ func TestRedisCacheDeleteEvent(t *testing.T) {
 func TestRedisCacheStats(t *testing.T) {
 	t.Run("Get cache stats", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Store some events
 		event1 := eg.GenerateTextNote(eg.GetRandomNpub(), "Message 1", nostr.Tags{})
@@ -230,7 +230,7 @@ func TestRedisCacheStats(t *testing.T) {
 func TestRedisCacheClose(t *testing.T) {
 	t.Run("Close cache", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Store some events
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
@@ -249,7 +249,7 @@ func TestRedisCacheClose(t *testing.T) {
 func TestRedisCacheHelperMethods(t *testing.T) {
 	t.Run("GetEventsByAuthor", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub1 := eg.GetRandomNpub()
 		npub2 := eg.GetRandomNpub()
@@ -275,7 +275,7 @@ func TestRedisCacheHelperMethods(t *testing.T) {
 
 	t.Run("GetEventsByKind", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub := eg.GetRandomNpub()
 
@@ -300,7 +300,7 @@ func TestRedisCacheHelperMethods(t *testing.T) {
 
 	t.Run("Clear cache", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Store some events
 		event1 := eg.GenerateTextNote(eg.GetRandomNpub(), "Message 1", nostr.Tags{})
@@ -319,7 +319,7 @@ func TestRedisCacheHelperMethods(t *testing.T) {
 func TestRedisCacheWithError(t *testing.T) {
 	t.Run("Store error", func(t *testing.T) {
 		mockCache := mocks.NewMockCacheWithError()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
@@ -367,7 +367,7 @@ func TestRedisCacheWithError(t *testing.T) {
 func TestRedisCacheIntegration(t *testing.T) {
 	t.Run("High-volume storage", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Generate and store many events
 		events := eg.GenerateEventBatch(1000, 1)
@@ -391,7 +391,7 @@ func TestRedisCacheIntegration(t *testing.T) {
 
 	t.Run("Cache statistics", func(t *testing.T) {
 		mockCache := mocks.NewMockCache()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Store various types of events
 		textEvent := eg.GenerateTextNote(eg.GetRandomNpub(), "Text", nostr.Tags{})

@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"mercury-relay/internal/config"
+	"mercury-relay/internal/models"
 	"mercury-relay/test/helpers"
 )
 
 func TestWritePermissionCheck(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
 	
@@ -65,7 +66,7 @@ func TestWritePermissionCheck(t *testing.T) {
 }
 
 func TestReadPermissionCheck(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
 	
@@ -108,7 +109,7 @@ func TestReadPermissionCheck(t *testing.T) {
 
 func TestFollowListLoading(t *testing.T) {
 	t.Run("Successful follow list fetch", func(t *testing.T) {
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		followerNpub := eg.GetFollowerNpub()
 		
@@ -154,7 +155,7 @@ func TestFollowListLoading(t *testing.T) {
 	})
 
 	t.Run("Relay unavailable", func(t *testing.T) {
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		
 		cfg := config.AccessConfig{
@@ -176,7 +177,7 @@ func TestFollowListLoading(t *testing.T) {
 	})
 
 	t.Run("Invalid JSON response", func(t *testing.T) {
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		
 		// Create mock HTTP server returning invalid JSON
@@ -200,7 +201,7 @@ func TestFollowListLoading(t *testing.T) {
 
 func TestPeriodicUpdate(t *testing.T) {
 	t.Run("Follow list auto-update", func(t *testing.T) {
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		followerNpub := eg.GetFollowerNpub()
 		
@@ -258,7 +259,7 @@ func TestPeriodicUpdate(t *testing.T) {
 	})
 
 	t.Run("Update during context cancellation", func(t *testing.T) {
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		
 		cfg := config.AccessConfig{
@@ -287,7 +288,7 @@ func TestPeriodicUpdate(t *testing.T) {
 }
 
 func TestAccessControlMethods(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
 	
@@ -342,7 +343,7 @@ func TestAccessControlMethods(t *testing.T) {
 }
 
 func TestAccessControlEdgeCases(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	
 	t.Run("Empty follow list", func(t *testing.T) {
@@ -430,7 +431,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 
 // Test integration scenarios
 func TestAccessControlIntegration(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
 	

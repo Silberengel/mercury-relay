@@ -244,9 +244,11 @@ func (r *RESTAPIServer) handlePublish(w http.ResponseWriter, req *http.Request) 
 	}
 
 	// Check quality control
-	if err := r.qualityControl.ValidateEvent(&publishReq.Event); err != nil {
-		r.sendError(w, fmt.Sprintf("Quality control failed: %v", err), http.StatusBadRequest)
-		return
+	if r.qualityControl != nil {
+		if err := r.qualityControl.ValidateEvent(&publishReq.Event); err != nil {
+			r.sendError(w, fmt.Sprintf("Quality control failed: %v", err), http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Publish to queue
@@ -282,9 +284,11 @@ func (r *RESTAPIServer) handleStats(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Get quality stats
-	qualityStats, err := r.qualityControl.GetQualityStats()
-	if err == nil {
-		stats.QualityStats = qualityStats
+	if r.qualityControl != nil {
+		qualityStats, err := r.qualityControl.GetQualityStats()
+		if err == nil {
+			stats.QualityStats = qualityStats
+		}
 	}
 
 	r.sendSuccess(w, stats)

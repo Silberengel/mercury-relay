@@ -1,4 +1,4 @@
-package helpers
+package models
 
 import (
 	"crypto/rand"
@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-
-	"mercury-relay/internal/models"
 
 	"github.com/nbd-wtf/go-nostr"
 )
@@ -65,8 +63,8 @@ func (eg *EventGenerator) publicKeyToNpub(publicKey string) string {
 }
 
 // GenerateTextNote creates a kind 1 (text note) event
-func (eg *EventGenerator) GenerateTextNote(npub string, content string, tags nostr.Tags) *models.Event {
-	event := &models.Event{
+func (eg *EventGenerator) GenerateTextNote(npub string, content string, tags nostr.Tags) *Event {
+	event := &Event{
 		ID:        eg.generateEventID(npub, content),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
@@ -80,9 +78,9 @@ func (eg *EventGenerator) GenerateTextNote(npub string, content string, tags nos
 }
 
 // GenerateUserMetadata creates a kind 0 (user metadata) event
-func (eg *EventGenerator) GenerateUserMetadata(npub string, metadata map[string]interface{}) *models.Event {
+func (eg *EventGenerator) GenerateUserMetadata(npub string, metadata map[string]interface{}) *Event {
 	content, _ := json.Marshal(metadata)
-	event := &models.Event{
+	event := &Event{
 		ID:        eg.generateEventID(npub, string(content)),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
@@ -96,13 +94,13 @@ func (eg *EventGenerator) GenerateUserMetadata(npub string, metadata map[string]
 }
 
 // GenerateFollowList creates a kind 3 (follow list) event
-func (eg *EventGenerator) GenerateFollowList(npub string, followedNpubs []string) *models.Event {
+func (eg *EventGenerator) GenerateFollowList(npub string, followedNpubs []string) *Event {
 	var tags nostr.Tags
 	for _, followed := range followedNpubs {
 		tags = append(tags, []string{"p", followed, "", "follow"})
 	}
 
-	event := &models.Event{
+	event := &Event{
 		ID:        eg.generateEventID(npub, "follows"),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
@@ -116,14 +114,21 @@ func (eg *EventGenerator) GenerateFollowList(npub string, followedNpubs []string
 }
 
 // GenerateEbook creates a kind 30040 (ebook) event
-func (eg *EventGenerator) GenerateEbook(npub string, bookMetadata map[string]interface{}) *models.Event {
+func (eg *EventGenerator) GenerateEbook(npub string, bookMetadata map[string]interface{}) *Event {
 	content, _ := json.Marshal(bookMetadata)
-	event := &models.Event{
+	
+	// Safely extract identifier with fallback
+	identifier := "unknown"
+	if id, ok := bookMetadata["identifier"].(string); ok && id != "" {
+		identifier = id
+	}
+	
+	event := &Event{
 		ID:        eg.generateEventID(npub, string(content)),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
 		Kind:      30040,
-		Tags:      nostr.Tags{[]string{"d", bookMetadata["identifier"].(string)}},
+		Tags:      nostr.Tags{[]string{"d", identifier}},
 		Content:   string(content),
 		Sig:       eg.generateSignature(npub, string(content)),
 	}
@@ -132,9 +137,9 @@ func (eg *EventGenerator) GenerateEbook(npub string, bookMetadata map[string]int
 }
 
 // GenerateEbookContent creates a kind 30041 (ebook content) event
-func (eg *EventGenerator) GenerateEbookContent(npub string, bookIdentifier string, chapterData map[string]interface{}) *models.Event {
+func (eg *EventGenerator) GenerateEbookContent(npub string, bookIdentifier string, chapterData map[string]interface{}) *Event {
 	content, _ := json.Marshal(chapterData)
-	event := &models.Event{
+	event := &Event{
 		ID:        eg.generateEventID(npub, string(content)),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
@@ -148,14 +153,14 @@ func (eg *EventGenerator) GenerateEbookContent(npub string, bookIdentifier strin
 }
 
 // GenerateSpamEvent creates a low-quality event for spam testing
-func (eg *EventGenerator) GenerateSpamEvent(npub string) *models.Event {
+func (eg *EventGenerator) GenerateSpamEvent(npub string) *Event {
 	// Generate event with very short content and many tags
 	var tags nostr.Tags
 	for i := 0; i < 25; i++ {
 		tags = append(tags, []string{"t", fmt.Sprintf("spam%d", i)})
 	}
 
-	event := &models.Event{
+	event := &Event{
 		ID:        eg.generateEventID(npub, "spam"),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
@@ -169,7 +174,7 @@ func (eg *EventGenerator) GenerateSpamEvent(npub string) *models.Event {
 }
 
 // GenerateHighQualityEvent creates a high-quality event
-func (eg *EventGenerator) GenerateHighQualityEvent(npub string) *models.Event {
+func (eg *EventGenerator) GenerateHighQualityEvent(npub string) *Event {
 	content := "This is a high-quality post with meaningful content that provides value to the community. " +
 		"It contains thoughtful insights and relevant information that contributes to the conversation."
 
@@ -178,7 +183,7 @@ func (eg *EventGenerator) GenerateHighQualityEvent(npub string) *models.Event {
 		[]string{"t", "meaningful"},
 	}
 
-	event := &models.Event{
+	event := &Event{
 		ID:        eg.generateEventID(npub, content),
 		PubKey:    npub,
 		CreatedAt: time.Now(),
@@ -240,8 +245,8 @@ func (eg *EventGenerator) GetFollowerNpub() string {
 }
 
 // GenerateEventBatch creates multiple events for testing
-func (eg *EventGenerator) GenerateEventBatch(count int, kind int) []*models.Event {
-	var events []*models.Event
+func (eg *EventGenerator) GenerateEventBatch(count int, kind int) []*Event {
+	var events []*Event
 
 	for i := 0; i < count; i++ {
 		npub := eg.GetRandomNpub()

@@ -21,7 +21,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub1 := eg.GetRandomNpub()
 		npub2 := eg.GetRandomNpub()
@@ -66,7 +66,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub := eg.GetRandomNpub()
 
@@ -115,7 +115,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub := eg.GetRandomNpub()
 		event := eg.GenerateTextNote(npub, "Test message", nostr.Tags{})
@@ -161,10 +161,7 @@ func TestRESTAPIPublish(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
-
-		// Mock quality controller
-		_ = &MockQualityController{}
+		eg := models.NewEventGenerator()
 
 		cfg := config.RESTAPIConfig{
 			Enabled:     true,
@@ -253,7 +250,7 @@ func TestRESTAPIEbooks(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Create ebook events
 		ebook1 := eg.GenerateEbook(eg.GetRandomNpub(), map[string]interface{}{
@@ -308,7 +305,7 @@ func TestRESTAPIEbooks(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		npub1 := eg.GetRandomNpub()
 		npub2 := eg.GetRandomNpub()
@@ -427,10 +424,10 @@ func TestRESTAPIStats(t *testing.T) {
 		// Verify stats data
 		stats, ok := response.Data.(map[string]interface{})
 		helpers.AssertBoolEqual(t, true, ok)
-		helpers.AssertIntEqual(t, 0, int(stats["total_events"].(int64)))
-		helpers.AssertIntEqual(t, 0, int(stats["active_connections"].(int)))
-		helpers.AssertIntEqual(t, 0, int(stats["cache_size"].(int64)))
-		helpers.AssertIntEqual(t, 0, int(stats["queue_size"].(int64)))
+		helpers.AssertIntEqual(t, 0, int(stats["total_events"].(float64)))
+		helpers.AssertIntEqual(t, 0, int(stats["active_connections"].(float64)))
+		helpers.AssertIntEqual(t, 0, int(stats["cache_size"].(float64)))
+		helpers.AssertIntEqual(t, 0, int(stats["queue_size"].(float64)))
 	})
 }
 
@@ -544,7 +541,6 @@ func TestRESTAPIIntegration(t *testing.T) {
 		// Setup
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		_ = &MockQualityController{}
 
 		cfg := config.RESTAPIConfig{
 			Enabled:     true,
@@ -553,7 +549,7 @@ func TestRESTAPIIntegration(t *testing.T) {
 		}
 
 		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Step 1: Publish event via REST
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test message", nostr.Tags{})

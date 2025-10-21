@@ -12,6 +12,7 @@ import (
 	"mercury-relay/internal/access"
 	"mercury-relay/internal/api"
 	"mercury-relay/internal/config"
+	"mercury-relay/internal/models"
 	"mercury-relay/internal/quality"
 	"mercury-relay/internal/relay"
 	"mercury-relay/internal/streaming"
@@ -28,7 +29,7 @@ func TestFullEventLifecycle(t *testing.T) {
 		// Setup components with real interfaces
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Create configuration
 		cfg := config.Config{
@@ -144,7 +145,7 @@ func TestFullEventLifecycle(t *testing.T) {
 		// Setup components
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		cfg := config.Config{
 			Access: config.AccessConfig{
@@ -315,7 +316,7 @@ func TestStressTest(t *testing.T) {
 		// Setup components
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		cfg := config.Config{
 			Quality: config.QualityConfig{
@@ -384,7 +385,7 @@ func TestWebSocketIntegration(t *testing.T) {
 		// Setup components
 		mockCache := mocks.NewMockCache()
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		cfg := config.Config{
 			Server: config.ServerConfig{

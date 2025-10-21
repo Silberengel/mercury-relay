@@ -30,19 +30,19 @@ quality:
   rate_limit_per_minute: 100
   spam_threshold: 0.7
 
-cache:
+redis:
   host: "localhost"
   port: 6379
   password: ""
   db: 0
   ttl: "28h"
 
-queue:
-  host: "localhost"
-  port: 5672
-  username: "guest"
-  password: "guest"
-  vhost: "/"
+rabbitmq:
+  url: "amqp://guest:guest@localhost:5672/"
+  exchange_name: "events"
+  queue_name: "events_queue"
+  dlx_name: "events_dlx"
+  ttl: "24h"
 
 streaming:
   enabled: true
@@ -79,9 +79,9 @@ i2p:
 
 xftp:
   enabled: false
-  host: "localhost"
-  port: 443
-  max_file_size: "50MB"
+  server_url: "http://localhost:443"
+  storage_dir: "/tmp/xftp"
+  ttl: "48h"
 `
 
 		// Write to temporary file
@@ -100,12 +100,12 @@ xftp:
 		// Verify server config
 		helpers.AssertStringEqual(t, "localhost", cfg.Server.Host)
 		helpers.AssertIntEqual(t, 8080, cfg.Server.Port)
-		helpers.AssertStringEqual(t, "30s", cfg.Server.ReadTimeout.String())
-		helpers.AssertStringEqual(t, "30s", cfg.Server.WriteTimeout.String())
+		helpers.AssertDurationEqual(t, 30*time.Second, cfg.Server.ReadTimeout)
+		helpers.AssertDurationEqual(t, 30*time.Second, cfg.Server.WriteTimeout)
 
 		// Verify access config
 		helpers.AssertStringEqual(t, "npub1test", cfg.Access.OwnerNpub)
-		helpers.AssertStringEqual(t, "1h", cfg.Access.UpdateInterval.String())
+		helpers.AssertDurationEqual(t, time.Hour, cfg.Access.UpdateInterval)
 		helpers.AssertStringEqual(t, "https://relay.damus.io", cfg.Access.RelayURL)
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)
 		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite)
@@ -119,14 +119,14 @@ xftp:
 		helpers.AssertStringEqual(t, "localhost", cfg.Redis.Host)
 		helpers.AssertStringEqual(t, "", cfg.Redis.Password)
 		helpers.AssertIntEqual(t, 0, cfg.Redis.DB)
-		helpers.AssertStringEqual(t, "28h", cfg.Redis.TTL.String())
+		helpers.AssertDurationEqual(t, 28*time.Hour, cfg.Redis.TTL)
 
 		// Verify queue config
 		helpers.AssertStringEqual(t, "amqp://guest:guest@localhost:5672/", cfg.RabbitMQ.URL)
 		helpers.AssertStringEqual(t, "events", cfg.RabbitMQ.ExchangeName)
 		helpers.AssertStringEqual(t, "events_queue", cfg.RabbitMQ.QueueName)
+		helpers.AssertDurationEqual(t, 24*time.Hour, cfg.RabbitMQ.TTL)
 		helpers.AssertStringEqual(t, "events_dlx", cfg.RabbitMQ.DLXName)
-		helpers.AssertStringEqual(t, "24h", cfg.RabbitMQ.TTL.String())
 
 		// Verify streaming config
 		helpers.AssertBoolEqual(t, true, cfg.Streaming.Enabled)
@@ -134,8 +134,8 @@ xftp:
 		helpers.AssertStringEqual(t, "wss://relay.damus.io", cfg.Streaming.UpstreamRelays[0].URL)
 		helpers.AssertBoolEqual(t, true, cfg.Streaming.UpstreamRelays[0].Enabled)
 		helpers.AssertIntEqual(t, 1, cfg.Streaming.UpstreamRelays[0].Priority)
-		helpers.AssertStringEqual(t, "30s", cfg.Streaming.ReconnectInterval.String())
-		helpers.AssertStringEqual(t, "60s", cfg.Streaming.Timeout.String())
+		helpers.AssertDurationEqual(t, 30*time.Second, cfg.Streaming.ReconnectInterval)
+		helpers.AssertDurationEqual(t, 60*time.Second, cfg.Streaming.Timeout)
 
 		// Verify REST API config
 		helpers.AssertBoolEqual(t, true, cfg.RESTAPI.Enabled)
@@ -226,9 +226,9 @@ server:
 
 		// Verify defaults are applied
 		helpers.AssertStringEqual(t, "localhost", cfg.Server.Host)
-		helpers.AssertIntEqual(t, 8080, cfg.Server.Port)                      // Default port
-		helpers.AssertStringEqual(t, "30s", cfg.Server.ReadTimeout.String())  // Default timeout
-		helpers.AssertStringEqual(t, "30s", cfg.Server.WriteTimeout.String()) // Default timeout
+		helpers.AssertIntEqual(t, 8080, cfg.Server.Port)                        // Default port
+		helpers.AssertDurationEqual(t, 30*time.Second, cfg.Server.ReadTimeout)  // Default timeout
+		helpers.AssertDurationEqual(t, 30*time.Second, cfg.Server.WriteTimeout) // Default timeout
 
 		// Verify other defaults
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)        // Default
@@ -313,6 +313,10 @@ func TestConfigValidation(t *testing.T) {
 
 	t.Run("Invalid access config", func(t *testing.T) {
 		cfg := &Config{
+			Server: ServerConfig{
+				Host: "localhost",
+				Port: 8080,
+			},
 			Access: AccessConfig{
 				OwnerNpub:        "",
 				UpdateInterval:   -1 * time.Hour,
@@ -329,6 +333,10 @@ func TestConfigValidation(t *testing.T) {
 
 	t.Run("Invalid quality config", func(t *testing.T) {
 		cfg := &Config{
+			Server: ServerConfig{
+				Host: "localhost",
+				Port: 8080,
+			},
 			Quality: QualityConfig{
 				MaxContentLength:   -1,
 				RateLimitPerMinute: -1,
@@ -422,7 +430,7 @@ server:
 		helpers.AssertIntEqual(t, 200, cfg.Quality.RateLimitPerMinute)
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)
 		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite)
-		helpers.AssertStringEqual(t, "2h", cfg.Access.UpdateInterval.String())
+		helpers.AssertDurationEqual(t, 2*time.Hour, cfg.Access.UpdateInterval)
 		helpers.AssertStringEqual(t, "https://custom-relay.com", cfg.Access.RelayURL)
 		helpers.AssertStringEqual(t, "redis.example.com", cfg.Redis.Host)
 		helpers.AssertStringEqual(t, "redis-pass", cfg.Redis.Password)

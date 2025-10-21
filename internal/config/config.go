@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -164,29 +165,240 @@ type TransportMethods struct {
 }
 
 func Load(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+	var config Config
+
+	// Load from file if it exists
+	if path != "" {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file: %w", err)
+		}
+
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			return nil, fmt.Errorf("failed to parse config file: %w", err)
+		}
 	}
 
-	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
-	}
+	// Set defaults for any unset fields
+	setDefaults(&config)
+
+	// Apply environment variable overrides
+	applyEnvOverrides(&config)
 
 	return &config, nil
 }
 
+// setDefaults sets default configuration values
+func setDefaults(config *Config) {
+	// Server defaults
+	if config.Server.Host == "" {
+		config.Server.Host = "localhost"
+	}
+	if config.Server.Port <= 0 {
+		config.Server.Port = 8080
+	}
+	if config.Server.ReadTimeout == 0 {
+		config.Server.ReadTimeout = 30 * time.Second
+	}
+	if config.Server.WriteTimeout == 0 {
+		config.Server.WriteTimeout = 30 * time.Second
+	}
+
+	// Access defaults
+	if config.Access.AllowPublicRead == false && config.Access.AllowPublicWrite == false {
+		config.Access.AllowPublicRead = true
+		config.Access.AllowPublicWrite = false
+	}
+	if config.Access.UpdateInterval == 0 {
+		config.Access.UpdateInterval = time.Hour
+	}
+
+	// Quality defaults
+	if config.Quality.MaxContentLength == 0 {
+		config.Quality.MaxContentLength = 10000
+	}
+	if config.Quality.RateLimitPerMinute == 0 {
+		config.Quality.RateLimitPerMinute = 100
+	}
+	if config.Quality.SpamThreshold == 0 {
+		config.Quality.SpamThreshold = 0.7
+	}
+
+	// RabbitMQ defaults
+	if config.RabbitMQ.ExchangeName == "" {
+		config.RabbitMQ.ExchangeName = "events"
+	}
+	if config.RabbitMQ.QueueName == "" {
+		config.RabbitMQ.QueueName = "events_queue"
+	}
+	if config.RabbitMQ.DLXName == "" {
+		config.RabbitMQ.DLXName = "events_dlx"
+	}
+}
+
+// applyEnvOverrides applies environment variable overrides
+func applyEnvOverrides(config *Config) {
+	// Server config
+	if host := os.Getenv("SERVER_HOST"); host != "" {
+		config.Server.Host = host
+	}
+	if port := os.Getenv("SERVER_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.Server.Port = p
+		}
+	}
+	if port := os.Getenv("NOSTR_RELAY_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.Server.Port = p
+		}
+	}
+
+	// Access config
+	if owner := os.Getenv("OWNER_NPUB"); owner != "" {
+		config.Access.OwnerNpub = owner
+	}
+	if url := os.Getenv("ACCESS_RELAY_URL"); url != "" {
+		config.Access.RelayURL = url
+	}
+	if read := os.Getenv("ACCESS_PUBLIC_READ"); read != "" {
+		config.Access.AllowPublicRead = read == "true"
+	}
+	if write := os.Getenv("ACCESS_PUBLIC_WRITE"); write != "" {
+		config.Access.AllowPublicWrite = write == "true"
+	}
+	if interval := os.Getenv("ACCESS_UPDATE_INTERVAL"); interval != "" {
+		if d, err := time.ParseDuration(interval); err == nil {
+			config.Access.UpdateInterval = d
+		}
+	}
+
+	// Admin config
+	if port := os.Getenv("ADMIN_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.Admin.Port = p
+		}
+	}
+	if key := os.Getenv("API_KEY"); key != "" {
+		config.Admin.APIKey = key
+	}
+
+	// REST API config
+	if port := os.Getenv("REST_API_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.RESTAPI.Port = p
+		}
+	}
+	if cors := os.Getenv("CORS_ENABLED"); cors != "" {
+		config.RESTAPI.CORSEnabled = cors == "true"
+	}
+
+	// Streaming config
+	if streaming := os.Getenv("STREAMING_ENABLED"); streaming != "" {
+		config.Streaming.Enabled = streaming == "true"
+	}
+
+	// Tor config
+	if tor := os.Getenv("TOR_ENABLED"); tor != "" {
+		config.Tor.Enabled = tor == "true"
+	}
+	if port := os.Getenv("TOR_SOCKS_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.Tor.SocksPort = p
+		}
+	}
+	if port := os.Getenv("TOR_CONTROL_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.Tor.ControlPort = p
+		}
+	}
+
+	// I2P config
+	if i2p := os.Getenv("I2P_ENABLED"); i2p != "" {
+		config.I2P.Enabled = i2p == "true"
+	}
+	if port := os.Getenv("I2P_SAM_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.I2P.SAMPort = p
+		}
+	}
+
+	// XFTP config
+	if xftp := os.Getenv("XFTP_ENABLED"); xftp != "" {
+		config.XFTP.Enabled = xftp == "true"
+	}
+
+	// Quality config
+	if rate := os.Getenv("RATE_LIMIT_PER_MINUTE"); rate != "" {
+		if r, err := strconv.Atoi(rate); err == nil {
+			config.Quality.RateLimitPerMinute = r
+		}
+	}
+
+	// Redis config
+	if host := os.Getenv("REDIS_HOST"); host != "" {
+		config.Redis.Host = host
+	}
+	if password := os.Getenv("REDIS_PASSWORD"); password != "" {
+		config.Redis.Password = password
+	}
+	if db := os.Getenv("REDIS_DB"); db != "" {
+		if d, err := strconv.Atoi(db); err == nil {
+			config.Redis.DB = d
+		}
+	}
+
+	// RabbitMQ config
+	if host := os.Getenv("RABBITMQ_HOST"); host != "" {
+		username := os.Getenv("RABBITMQ_USERNAME")
+		password := os.Getenv("RABBITMQ_PASSWORD")
+		port := os.Getenv("RABBITMQ_PORT")
+		vhost := os.Getenv("RABBITMQ_VHOST")
+
+		if username == "" {
+			username = "guest"
+		}
+		if password == "" {
+			password = "guest"
+		}
+		if port == "" {
+			port = "5672"
+		}
+		if vhost == "" {
+			vhost = "/"
+		}
+
+		config.RabbitMQ.URL = fmt.Sprintf("amqp://%s:%s@%s:%s%s", username, password, host, port, vhost)
+	}
+}
+
 // Validate validates the configuration
 func (c *Config) Validate() error {
+	// Validate server config
 	if c.Server.Port <= 0 || c.Server.Port > 65535 {
-		return fmt.Errorf("invalid server port: %d", c.Server.Port)
+		return fmt.Errorf("invalid server config: port %d", c.Server.Port)
 	}
+	if c.Server.ReadTimeout < 0 {
+		return fmt.Errorf("invalid server config: negative read timeout")
+	}
+	if c.Server.WriteTimeout < 0 {
+		return fmt.Errorf("invalid server config: negative write timeout")
+	}
+
+	// Validate access config
+	if c.Access.UpdateInterval < 0 {
+		return fmt.Errorf("invalid access config: negative update interval")
+	}
+
+	// Validate quality config
 	if c.Quality.MaxContentLength <= 0 {
-		return fmt.Errorf("invalid max content length: %d", c.Quality.MaxContentLength)
+		return fmt.Errorf("invalid quality config: max content length %d", c.Quality.MaxContentLength)
 	}
 	if c.Quality.RateLimitPerMinute <= 0 {
-		return fmt.Errorf("invalid rate limit: %d", c.Quality.RateLimitPerMinute)
+		return fmt.Errorf("invalid quality config: rate limit %d", c.Quality.RateLimitPerMinute)
 	}
+	if c.Quality.SpamThreshold < 0 || c.Quality.SpamThreshold > 1 {
+		return fmt.Errorf("invalid quality config: spam threshold %f", c.Quality.SpamThreshold)
+	}
+
 	return nil
 }

@@ -2,183 +2,175 @@ package helpers
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
-
-	"mercury-relay/internal/models"
-
-	"github.com/nbd-wtf/go-nostr"
 )
 
-// AssertEventEqual compares two events for equality
-func AssertEventEqual(t *testing.T, expected, actual *models.Event, msgAndArgs ...interface{}) {
-	if expected == nil && actual == nil {
-		return
-	}
-	if expected == nil || actual == nil {
-		t.Fatalf("One event is nil: expected=%v, actual=%v", expected != nil, actual != nil)
-	}
-
-	if expected.ID != actual.ID {
-		t.Errorf("Event ID mismatch: expected=%s, actual=%s", expected.ID, actual.ID)
-	}
-	if expected.PubKey != actual.PubKey {
-		t.Errorf("Event PubKey mismatch: expected=%s, actual=%s", expected.PubKey, actual.PubKey)
-	}
-	if expected.Kind != actual.Kind {
-		t.Errorf("Event Kind mismatch: expected=%d, actual=%d", expected.Kind, actual.Kind)
-	}
-	if expected.Content != actual.Content {
-		t.Errorf("Event Content mismatch: expected=%s, actual=%s", expected.Content, actual.Content)
-	}
-	if expected.Sig != actual.Sig {
-		t.Errorf("Event Sig mismatch: expected=%s, actual=%s", expected.Sig, actual.Sig)
-	}
-
-	// Compare tags
-	if !reflect.DeepEqual(expected.Tags, actual.Tags) {
-		t.Errorf("Event Tags mismatch: expected=%v, actual=%v", expected.Tags, actual.Tags)
-	}
-
-	// Compare timestamps (allow 1 second difference)
-	if !timesEqual(expected.CreatedAt, actual.CreatedAt, time.Second) {
-		t.Errorf("Event CreatedAt mismatch: expected=%v, actual=%v", expected.CreatedAt, actual.CreatedAt)
-	}
-}
-
-// AssertEventsEqual compares two slices of events
-func AssertEventsEqual(t *testing.T, expected, actual []*models.Event, msgAndArgs ...interface{}) {
-	if len(expected) != len(actual) {
-		t.Fatalf("Event count mismatch: expected=%d, actual=%d", len(expected), len(actual))
-	}
-
-	for i := range expected {
-		AssertEventEqual(t, expected[i], actual[i], msgAndArgs...)
-	}
-}
-
-// AssertFilterMatches checks if events match a filter
-func AssertFilterMatches(t *testing.T, events []*models.Event, filter nostr.Filter, expectedCount int, msgAndArgs ...interface{}) {
-	matched := 0
-	for _, event := range events {
-		if matchesFilter(event, filter) {
-			matched++
-		}
-	}
-
-	if matched != expectedCount {
-		t.Errorf("Filter match count mismatch: expected=%d, actual=%d, filter=%+v", expectedCount, matched, filter)
-	}
-}
-
-// AssertQualityScore checks if event quality score is within expected range
-func AssertQualityScore(t *testing.T, event *models.Event, min, max float64, msgAndArgs ...interface{}) {
-	if event.QualityScore < min || event.QualityScore > max {
-		t.Errorf("Quality score out of range: expected=[%.2f, %.2f], actual=%.2f", min, max, event.QualityScore)
-	}
-}
-
-// AssertEventIsSpam checks if event is correctly identified as spam
-func AssertEventIsSpam(t *testing.T, event *models.Event, threshold float64, expected bool, msgAndArgs ...interface{}) {
-	actual := event.IsSpam(threshold)
-	if actual != expected {
-		t.Errorf("Spam detection mismatch: expected=%v, actual=%v, threshold=%.2f, score=%.2f",
-			expected, actual, threshold, event.QualityScore)
-	}
-}
-
-// AssertEventQuarantined checks if event is quarantined
-func AssertEventQuarantined(t *testing.T, event *models.Event, expected bool, msgAndArgs ...interface{}) {
-	if event.IsQuarantined != expected {
-		t.Errorf("Quarantine status mismatch: expected=%v, actual=%v", expected, event.IsQuarantined)
-	}
-}
-
-// AssertErrorContains checks if error contains expected text
-func AssertErrorContains(t *testing.T, err error, expectedText string, msgAndArgs ...interface{}) {
-	if err == nil {
-		t.Errorf("Expected error containing '%s', but got nil", expectedText)
-		return
-	}
-
-	if err.Error() != expectedText && !contains(err.Error(), expectedText) {
-		t.Errorf("Error message mismatch: expected to contain '%s', actual='%s'", expectedText, err.Error())
-	}
-}
-
-// AssertNoError checks that error is nil
-func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
+// AssertNoError checks that err is nil
+func AssertNoError(t *testing.T, err error) {
+	t.Helper()
 	if err != nil {
-		t.Errorf("Expected no error, but got: %v", err)
+		t.Fatalf("Expected no error, got: %v", err)
 	}
 }
 
-// AssertError checks that error is not nil
-func AssertError(t *testing.T, err error, msgAndArgs ...interface{}) {
+// AssertError checks that err is not nil
+func AssertError(t *testing.T, err error) {
+	t.Helper()
 	if err == nil {
-		t.Errorf("Expected error, but got nil")
+		t.Fatal("Expected error, got nil")
 	}
 }
 
-// AssertIntEqual checks integer equality
-func AssertIntEqual(t *testing.T, expected, actual int, msgAndArgs ...interface{}) {
+// AssertErrorContains checks that err contains the specified substring
+func AssertErrorContains(t *testing.T, err error, substring string) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("Expected error containing '%s', got nil", substring)
+	}
+	if !strings.Contains(err.Error(), substring) {
+		t.Fatalf("Expected error to contain '%s', got: %v", substring, err)
+	}
+}
+
+// AssertEqual checks that expected equals actual
+func AssertEqual(t *testing.T, expected, actual interface{}) {
+	t.Helper()
 	if expected != actual {
-		t.Errorf("Integer mismatch: expected=%d, actual=%d", expected, actual)
+		t.Fatalf("Expected %v, got %v", expected, actual)
 	}
 }
 
-// AssertInt64Equal checks int64 equality
-func AssertInt64Equal(t *testing.T, expected, actual int64, msgAndArgs ...interface{}) {
+// AssertNotEqual checks that expected does not equal actual
+func AssertNotEqual(t *testing.T, expected, actual interface{}) {
+	t.Helper()
+	if expected == actual {
+		t.Fatalf("Expected %v to not equal %v", expected, actual)
+	}
+}
+
+// AssertTrue checks that condition is true
+func AssertTrue(t *testing.T, condition bool) {
+	t.Helper()
+	if !condition {
+		t.Fatal("Expected true, got false")
+	}
+}
+
+// AssertFalse checks that condition is false
+func AssertFalse(t *testing.T, condition bool) {
+	t.Helper()
+	if condition {
+		t.Fatal("Expected false, got true")
+	}
+}
+
+// AssertIntEqual checks that two integers are equal
+func AssertIntEqual(t *testing.T, expected, actual int) {
+	t.Helper()
 	if expected != actual {
-		t.Errorf("Int64 mismatch: expected=%d, actual=%d", expected, actual)
+		t.Fatalf("Expected %d, got %d", expected, actual)
 	}
 }
 
-// AssertStringEqual checks string equality
-func AssertStringEqual(t *testing.T, expected, actual string, msgAndArgs ...interface{}) {
+// AssertInt64Equal checks that two int64s are equal
+func AssertInt64Equal(t *testing.T, expected, actual int64) {
+	t.Helper()
 	if expected != actual {
-		t.Errorf("String mismatch: expected='%s', actual='%s'", expected, actual)
+		t.Fatalf("Expected %d, got %d", expected, actual)
 	}
 }
 
-// AssertBoolEqual checks boolean equality
-func AssertBoolEqual(t *testing.T, expected, actual bool, msgAndArgs ...interface{}) {
+// AssertFloat64Equal checks that two float64s are equal within epsilon
+func AssertFloat64Equal(t *testing.T, expected, actual, epsilon float64) {
+	t.Helper()
+	if abs(expected-actual) > epsilon {
+		t.Fatalf("Expected %f, got %f (epsilon: %f)", expected, actual, epsilon)
+	}
+}
+
+// AssertStringEqual checks that two strings are equal
+func AssertStringEqual(t *testing.T, expected, actual string) {
+	t.Helper()
 	if expected != actual {
-		t.Errorf("Boolean mismatch: expected=%v, actual=%v", expected, actual)
+		t.Fatalf("Expected %s, got %s", expected, actual)
 	}
 }
 
-// AssertFloat64Equal checks float64 equality with tolerance
-func AssertFloat64Equal(t *testing.T, expected, actual, tolerance float64, msgAndArgs ...interface{}) {
-	diff := expected - actual
-	if diff < 0 {
-		diff = -diff
-	}
-	if diff > tolerance {
-		t.Errorf("Float64 mismatch: expected=%.6f, actual=%.6f, tolerance=%.6f", expected, actual, tolerance)
+// AssertDurationEqual checks that two durations are equal
+func AssertDurationEqual(t *testing.T, expected, actual time.Duration) {
+	t.Helper()
+	if expected != actual {
+		t.Fatalf("Expected %v, got %v", expected, actual)
 	}
 }
 
-// AssertNotNil checks that value is not nil
-func AssertNotNil(t *testing.T, value interface{}, msgAndArgs ...interface{}) {
-	if value == nil {
-		t.Errorf("Expected non-nil value, but got nil")
+// AssertStringContains checks that str contains substr
+func AssertStringContains(t *testing.T, str, substr string) {
+	t.Helper()
+	if !strings.Contains(str, substr) {
+		t.Fatalf("Expected '%s' to contain '%s'", str, substr)
+	}
+}
+
+// AssertBoolEqual checks that two booleans are equal
+func AssertBoolEqual(t *testing.T, expected, actual bool) {
+	t.Helper()
+	if expected != actual {
+		t.Fatalf("Expected %t, got %t", expected, actual)
 	}
 }
 
 // AssertNil checks that value is nil
-func AssertNil(t *testing.T, value interface{}, msgAndArgs ...interface{}) {
+func AssertNil(t *testing.T, value interface{}) {
+	t.Helper()
 	if value != nil {
-		t.Errorf("Expected nil value, but got %v", value)
+		t.Fatalf("Expected nil, got %v", value)
 	}
 }
 
-// AssertContains checks if slice contains element
-func AssertContains(t *testing.T, slice interface{}, element interface{}, msgAndArgs ...interface{}) {
+// AssertNotNil checks that value is not nil
+func AssertNotNil(t *testing.T, value interface{}) {
+	t.Helper()
+	if value == nil {
+		t.Fatal("Expected non-nil value, got nil")
+	}
+}
+
+// AssertLen checks that slice/array has expected length
+func AssertLen(t *testing.T, slice interface{}, expected int) {
+	t.Helper()
+	actual := reflect.ValueOf(slice).Len()
+	if actual != expected {
+		t.Fatalf("Expected length %d, got %d", expected, actual)
+	}
+}
+
+// AssertEmpty checks that slice/array is empty
+func AssertEmpty(t *testing.T, slice interface{}) {
+	t.Helper()
+	length := reflect.ValueOf(slice).Len()
+	if length != 0 {
+		t.Fatalf("Expected empty slice, got length %d", length)
+	}
+}
+
+// AssertNotEmpty checks that slice/array is not empty
+func AssertNotEmpty(t *testing.T, slice interface{}) {
+	t.Helper()
+	length := reflect.ValueOf(slice).Len()
+	if length == 0 {
+		t.Fatal("Expected non-empty slice, got empty")
+	}
+}
+
+// AssertContains checks that slice contains the specified element
+func AssertContains(t *testing.T, slice interface{}, element interface{}) {
+	t.Helper()
 	sliceValue := reflect.ValueOf(slice)
-	if sliceValue.Kind() != reflect.Slice {
-		t.Errorf("Expected slice, but got %T", slice)
-		return
+	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Array {
+		t.Fatalf("Expected slice or array, got %T", slice)
 	}
 
 	for i := 0; i < sliceValue.Len(); i++ {
@@ -187,40 +179,71 @@ func AssertContains(t *testing.T, slice interface{}, element interface{}, msgAnd
 		}
 	}
 
-	t.Errorf("Expected slice to contain element %v, but it didn't", element)
+	t.Fatalf("Expected slice to contain %v", element)
 }
 
-// AssertNotContains checks if slice does not contain element
-func AssertNotContains(t *testing.T, slice interface{}, element interface{}, msgAndArgs ...interface{}) {
+// AssertNotContains checks that slice does not contain the specified element
+func AssertNotContains(t *testing.T, slice interface{}, element interface{}) {
+	t.Helper()
 	sliceValue := reflect.ValueOf(slice)
-	if sliceValue.Kind() != reflect.Slice {
-		t.Errorf("Expected slice, but got %T", slice)
-		return
+	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Array {
+		t.Fatalf("Expected slice or array, got %T", slice)
 	}
 
 	for i := 0; i < sliceValue.Len(); i++ {
 		if reflect.DeepEqual(sliceValue.Index(i).Interface(), element) {
-			t.Errorf("Expected slice to not contain element %v, but it did", element)
-			return
+			t.Fatalf("Expected slice to not contain %v", element)
 		}
 	}
 }
 
-// AssertMapContains checks if map contains key
-func AssertMapContains(t *testing.T, m interface{}, key interface{}, msgAndArgs ...interface{}) {
-	mapValue := reflect.ValueOf(m)
-	if mapValue.Kind() != reflect.Map {
-		t.Errorf("Expected map, but got %T", m)
-		return
+// AssertQualityScore checks that event's quality score is within expected range
+func AssertQualityScore(t *testing.T, event interface{}, min, max float64) {
+	t.Helper()
+	// Use reflection to access QualityScore field
+	eventValue := reflect.ValueOf(event)
+	if eventValue.Kind() == reflect.Ptr {
+		eventValue = eventValue.Elem()
 	}
 
-	keyValue := reflect.ValueOf(key)
-	if !mapValue.MapIndex(keyValue).IsValid() {
-		t.Errorf("Expected map to contain key %v, but it didn't", key)
+	qualityScoreField := eventValue.FieldByName("QualityScore")
+	if !qualityScoreField.IsValid() {
+		t.Fatalf("Event does not have QualityScore field")
+	}
+
+	qualityScore := qualityScoreField.Float()
+	if qualityScore < min || qualityScore > max {
+		t.Fatalf("Expected quality score between %f and %f, got %f", min, max, qualityScore)
+	}
+}
+
+// AssertEventQuarantined checks that event's quarantine status matches expected value
+func AssertEventQuarantined(t *testing.T, event interface{}, expected bool) {
+	t.Helper()
+	// Use reflection to access IsQuarantined field
+	eventValue := reflect.ValueOf(event)
+	if eventValue.Kind() == reflect.Ptr {
+		eventValue = eventValue.Elem()
+	}
+
+	quarantinedField := eventValue.FieldByName("IsQuarantined")
+	if !quarantinedField.IsValid() {
+		t.Fatalf("Event does not have IsQuarantined field")
+	}
+
+	quarantined := quarantinedField.Bool()
+	if quarantined != expected {
+		t.Fatalf("Expected quarantined=%t, got quarantined=%t", expected, quarantined)
 	}
 }
 
 // Helper functions
+func abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
 
 func timesEqual(t1, t2 time.Time, tolerance time.Duration) bool {
 	diff := t1.Sub(t2)
@@ -228,55 +251,4 @@ func timesEqual(t1, t2 time.Time, tolerance time.Duration) bool {
 		diff = -diff
 	}
 	return diff <= tolerance
-}
-
-func matchesFilter(event *models.Event, filter nostr.Filter) bool {
-	// Check authors
-	if len(filter.Authors) > 0 {
-		found := false
-		for _, author := range filter.Authors {
-			if event.PubKey == author {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Check kinds
-	if len(filter.Kinds) > 0 {
-		found := false
-		for _, kind := range filter.Kinds {
-			if event.Kind == kind {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Check since
-	if filter.Since != nil && *filter.Since > 0 {
-		if nostr.Timestamp(event.CreatedAt.Unix()) < *filter.Since {
-			return false
-		}
-	}
-
-	// Check until
-	if filter.Until != nil && *filter.Until > 0 {
-		if nostr.Timestamp(event.CreatedAt.Unix()) > *filter.Until {
-			return false
-		}
-	}
-
-	return true
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[:len(substr)] == substr ||
-		len(s) > len(substr) && contains(s[1:], substr)
 }

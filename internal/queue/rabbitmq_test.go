@@ -13,7 +13,7 @@ import (
 func TestRabbitMQPublishEvent(t *testing.T) {
 	t.Run("Publish single event", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
@@ -32,7 +32,7 @@ func TestRabbitMQPublishEvent(t *testing.T) {
 
 	t.Run("Publish failure", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueueWithError()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
@@ -48,7 +48,7 @@ func TestRabbitMQPublishEvent(t *testing.T) {
 func TestRabbitMQConsumeEvents(t *testing.T) {
 	t.Run("Consume from queue", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish multiple events
 		event1 := eg.GenerateTextNote(eg.GetRandomNpub(), "Message 1", nostr.Tags{})
@@ -99,7 +99,7 @@ func TestRabbitMQConsumeEvents(t *testing.T) {
 func TestRabbitMQQueueStatistics(t *testing.T) {
 	t.Run("Queue depth monitoring", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish some events
 		for i := 0; i < 50; i++ {
@@ -122,7 +122,7 @@ func TestRabbitMQQueueStatistics(t *testing.T) {
 		// This would test multiple queue scenarios in a real implementation
 		// For now, we test the single queue interface
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish events to simulate different queues
 		event1 := eg.GenerateTextNote(eg.GetRandomNpub(), "Priority 1", nostr.Tags{})
@@ -150,7 +150,7 @@ func TestRabbitMQQueueStatistics(t *testing.T) {
 func TestRabbitMQClose(t *testing.T) {
 	t.Run("Close queue", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish some events
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
@@ -169,7 +169,7 @@ func TestRabbitMQClose(t *testing.T) {
 func TestRabbitMQHelperMethods(t *testing.T) {
 	t.Run("Peek at first event", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		event1 := eg.GenerateTextNote(eg.GetRandomNpub(), "First message", nostr.Tags{})
 		event2 := eg.GenerateTextNote(eg.GetRandomNpub(), "Second message", nostr.Tags{})
@@ -196,7 +196,7 @@ func TestRabbitMQHelperMethods(t *testing.T) {
 
 	t.Run("Clear queue", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish some events
 		event1 := eg.GenerateTextNote(eg.GetRandomNpub(), "Message 1", nostr.Tags{})
@@ -215,7 +215,7 @@ func TestRabbitMQHelperMethods(t *testing.T) {
 func TestRabbitMQIntegration(t *testing.T) {
 	t.Run("Publish and consume cycle", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish 100 events
 		var publishedEvents []*models.Event
@@ -254,7 +254,7 @@ func TestRabbitMQIntegration(t *testing.T) {
 
 	t.Run("Consumer lag", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish events faster than consuming
 		for i := 0; i < 1000; i++ {
@@ -278,7 +278,7 @@ func TestRabbitMQIntegration(t *testing.T) {
 func TestRabbitMQErrorHandling(t *testing.T) {
 	t.Run("Publish error handling", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueueWithError()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
 
@@ -310,7 +310,7 @@ func TestRabbitMQErrorHandling(t *testing.T) {
 func TestRabbitMQConcurrency(t *testing.T) {
 	t.Run("Concurrent publish and consume", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Simulate concurrent operations
 		done := make(chan bool, 2)
@@ -347,7 +347,7 @@ func TestRabbitMQConcurrency(t *testing.T) {
 func TestRabbitMQEventTypes(t *testing.T) {
 	t.Run("Different event kinds", func(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
-		eg := helpers.NewEventGenerator()
+		eg := models.NewEventGenerator()
 
 		// Publish different types of events
 		textEvent := eg.GenerateTextNote(eg.GetRandomNpub(), "Text note", nostr.Tags{})

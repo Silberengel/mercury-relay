@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"mercury-relay/internal/config"
+	"mercury-relay/internal/models"
 	"mercury-relay/test/helpers"
 	"mercury-relay/test/mocks"
 
@@ -13,7 +14,7 @@ import (
 )
 
 func TestEventValidation(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 
 	t.Run("Normal quality event", func(t *testing.T) {
 		cfg := config.QualityConfig{
@@ -55,7 +56,7 @@ func TestEventValidation(t *testing.T) {
 }
 
 func TestRateLimiting(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	npub := eg.GetRandomNpub()
 
 	t.Run("Normal posting rate", func(t *testing.T) {
@@ -130,7 +131,7 @@ func TestRateLimiting(t *testing.T) {
 }
 
 func TestBlockingUnblocking(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	npub := eg.GetRandomNpub()
 
 	t.Run("Block npub", func(t *testing.T) {
@@ -204,7 +205,7 @@ func TestBlockingUnblocking(t *testing.T) {
 }
 
 func TestKindSpecificValidation(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 	npub := eg.GetRandomNpub()
 
 	t.Run("Kind 0 (user metadata) validation", func(t *testing.T) {
@@ -263,7 +264,7 @@ func TestKindSpecificValidation(t *testing.T) {
 }
 
 func TestQualityScoreCalculation(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 
 	t.Run("Optimal content", func(t *testing.T) {
 		cfg := config.QualityConfig{
@@ -303,7 +304,7 @@ func TestQualityScoreCalculation(t *testing.T) {
 }
 
 func TestContentLengthValidation(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 
 	t.Run("Content within limit", func(t *testing.T) {
 		cfg := config.QualityConfig{
@@ -344,7 +345,7 @@ func TestContentLengthValidation(t *testing.T) {
 }
 
 func TestQualityStats(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 
 	t.Run("Get quality stats", func(t *testing.T) {
 		cfg := config.QualityConfig{
@@ -374,7 +375,7 @@ func TestQualityStats(t *testing.T) {
 }
 
 func TestQualityControlStartStop(t *testing.T) {
-	_ = helpers.NewEventGenerator()
+	_ = models.NewEventGenerator()
 
 	t.Run("Start quality control", func(t *testing.T) {
 		cfg := config.QualityConfig{
@@ -401,7 +402,7 @@ func TestQualityControlStartStop(t *testing.T) {
 }
 
 func TestQualityControlIntegration(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 
 	t.Run("High quality event flow", func(t *testing.T) {
 		cfg := config.QualityConfig{
@@ -463,7 +464,7 @@ func TestQualityControlIntegration(t *testing.T) {
 }
 
 func TestRateLimiterCleanup(t *testing.T) {
-	eg := helpers.NewEventGenerator()
+	eg := models.NewEventGenerator()
 
 	t.Run("Rate limiter cleanup", func(t *testing.T) {
 		cfg := config.QualityConfig{
