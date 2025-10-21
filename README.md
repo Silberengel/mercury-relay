@@ -1,6 +1,6 @@
 # Mercury Relay
 
-A high-performance, censorship-resistant Nostr relay with advanced quality control, REST API, streaming capabilities, e-paper reader support, and decentralized storage.
+A high-performance, censorship-resistant Nostr relay with advanced quality control, protocol bridges, streaming capabilities, e-paper reader support, and decentralized storage.
 
 ## Features
 

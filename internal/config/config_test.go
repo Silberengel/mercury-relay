@@ -83,52 +83,51 @@ xftp:
   port: 443
   max_file_size: "50MB"
 `
-		
+
 		// Write to temporary file
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		_, err = tmpFile.WriteString(configContent)
 		helpers.AssertNoError(t, err)
 		tmpFile.Close()
-		
+
 		// Load config
 		cfg, err := Load(tmpFile.Name())
 		helpers.AssertNoError(t, err)
-		
+
 		// Verify server config
 		helpers.AssertStringEqual(t, "localhost", cfg.Server.Host)
 		helpers.AssertIntEqual(t, 8080, cfg.Server.Port)
 		helpers.AssertStringEqual(t, "30s", cfg.Server.ReadTimeout.String())
 		helpers.AssertStringEqual(t, "30s", cfg.Server.WriteTimeout.String())
-		
+
 		// Verify access config
 		helpers.AssertStringEqual(t, "npub1test", cfg.Access.OwnerNpub)
 		helpers.AssertStringEqual(t, "1h", cfg.Access.UpdateInterval.String())
 		helpers.AssertStringEqual(t, "https://relay.damus.io", cfg.Access.RelayURL)
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)
 		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite)
-		
+
 		// Verify quality config
 		helpers.AssertIntEqual(t, 10000, cfg.Quality.MaxContentLength)
 		helpers.AssertIntEqual(t, 100, cfg.Quality.RateLimitPerMinute)
 		helpers.AssertFloat64Equal(t, 0.7, cfg.Quality.SpamThreshold, 0.01)
-		
+
 		// Verify cache config
-		helpers.AssertStringEqual(t, "localhost", cfg.Cache.Host)
-		helpers.AssertIntEqual(t, 6379, cfg.Cache.Port)
-		helpers.AssertStringEqual(t, "", cfg.Cache.Password)
-		helpers.AssertIntEqual(t, 0, cfg.Cache.DB)
-		helpers.AssertStringEqual(t, "28h", cfg.Cache.TTL.String())
-		
+		helpers.AssertStringEqual(t, "localhost", cfg.Redis.Host)
+		helpers.AssertStringEqual(t, "", cfg.Redis.Password)
+		helpers.AssertIntEqual(t, 0, cfg.Redis.DB)
+		helpers.AssertStringEqual(t, "28h", cfg.Redis.TTL.String())
+
 		// Verify queue config
-		helpers.AssertStringEqual(t, "localhost", cfg.RabbitMQ.Host)
-		helpers.AssertIntEqual(t, 5672, cfg.RabbitMQ.Port)
-		helpers.AssertStringEqual(t, "guest", cfg.RabbitMQ.Username)
-		helpers.AssertStringEqual(t, "guest", cfg.RabbitMQ.Password)
-		helpers.AssertStringEqual(t, "/", cfg.RabbitMQ.VHost)
-		
+		helpers.AssertStringEqual(t, "amqp://guest:guest@localhost:5672/", cfg.RabbitMQ.URL)
+		helpers.AssertStringEqual(t, "events", cfg.RabbitMQ.ExchangeName)
+		helpers.AssertStringEqual(t, "events_queue", cfg.RabbitMQ.QueueName)
+		helpers.AssertStringEqual(t, "events_dlx", cfg.RabbitMQ.DLXName)
+		helpers.AssertStringEqual(t, "24h", cfg.RabbitMQ.TTL.String())
+
 		// Verify streaming config
 		helpers.AssertBoolEqual(t, true, cfg.Streaming.Enabled)
 		helpers.AssertIntEqual(t, 1, len(cfg.Streaming.UpstreamRelays))
@@ -137,29 +136,29 @@ xftp:
 		helpers.AssertIntEqual(t, 1, cfg.Streaming.UpstreamRelays[0].Priority)
 		helpers.AssertStringEqual(t, "30s", cfg.Streaming.ReconnectInterval.String())
 		helpers.AssertStringEqual(t, "60s", cfg.Streaming.Timeout.String())
-		
+
 		// Verify REST API config
 		helpers.AssertBoolEqual(t, true, cfg.RESTAPI.Enabled)
 		helpers.AssertIntEqual(t, 8082, cfg.RESTAPI.Port)
 		helpers.AssertBoolEqual(t, true, cfg.RESTAPI.CORSEnabled)
-		
+
 		// Verify admin config
 		helpers.AssertBoolEqual(t, true, cfg.Admin.Enabled)
 		helpers.AssertIntEqual(t, 8081, cfg.Admin.Port)
-		
+
 		// Verify transport configs
 		helpers.AssertBoolEqual(t, false, cfg.Tor.Enabled)
 		helpers.AssertIntEqual(t, 9050, cfg.Tor.SocksPort)
 		helpers.AssertIntEqual(t, 9051, cfg.Tor.ControlPort)
-		
+
 		helpers.AssertBoolEqual(t, false, cfg.I2P.Enabled)
 		helpers.AssertIntEqual(t, 7656, cfg.I2P.SAMPort)
-		
+
 		// Verify XFTP config
 		helpers.AssertBoolEqual(t, false, cfg.XFTP.Enabled)
-		helpers.AssertStringEqual(t, "localhost", cfg.XFTP.Host)
-		helpers.AssertIntEqual(t, 443, cfg.XFTP.Port)
-		helpers.AssertStringEqual(t, "50MB", cfg.XFTP.MaxFileSize)
+		helpers.AssertStringEqual(t, "http://localhost:443", cfg.XFTP.ServerURL)
+		helpers.AssertStringEqual(t, "/tmp/xftp", cfg.XFTP.StorageDir)
+		helpers.AssertStringEqual(t, "48h", cfg.XFTP.TTL)
 	})
 
 	t.Run("Environment variable override", func(t *testing.T) {
@@ -172,7 +171,7 @@ xftp:
 			os.Unsetenv("NOSTR_RELAY_PORT")
 			os.Unsetenv("STREAMING_ENABLED")
 		}()
-		
+
 		// Create minimal config file
 		configContent := `
 server:
@@ -185,19 +184,19 @@ access:
 streaming:
   enabled: true
 `
-		
+
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		_, err = tmpFile.WriteString(configContent)
 		helpers.AssertNoError(t, err)
 		tmpFile.Close()
-		
+
 		// Load config
 		cfg, err := Load(tmpFile.Name())
 		helpers.AssertNoError(t, err)
-		
+
 		// Verify environment variables override YAML values
 		helpers.AssertStringEqual(t, "npub1env", cfg.Access.OwnerNpub)
 		helpers.AssertIntEqual(t, 9090, cfg.Server.Port)
@@ -212,30 +211,30 @@ func TestConfigDefaultValues(t *testing.T) {
 server:
   host: "localhost"
 `
-		
+
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		_, err = tmpFile.WriteString(configContent)
 		helpers.AssertNoError(t, err)
 		tmpFile.Close()
-		
+
 		// Load config
 		cfg, err := Load(tmpFile.Name())
 		helpers.AssertNoError(t, err)
-		
+
 		// Verify defaults are applied
 		helpers.AssertStringEqual(t, "localhost", cfg.Server.Host)
-		helpers.AssertIntEqual(t, 8080, cfg.Server.Port) // Default port
-		helpers.AssertStringEqual(t, "30s", cfg.Server.ReadTimeout.String()) // Default timeout
+		helpers.AssertIntEqual(t, 8080, cfg.Server.Port)                      // Default port
+		helpers.AssertStringEqual(t, "30s", cfg.Server.ReadTimeout.String())  // Default timeout
 		helpers.AssertStringEqual(t, "30s", cfg.Server.WriteTimeout.String()) // Default timeout
-		
+
 		// Verify other defaults
-		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead) // Default
-		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite) // Default
-		helpers.AssertIntEqual(t, 10000, cfg.Quality.MaxContentLength) // Default
-		helpers.AssertIntEqual(t, 100, cfg.Quality.RateLimitPerMinute) // Default
+		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)        // Default
+		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite)      // Default
+		helpers.AssertIntEqual(t, 10000, cfg.Quality.MaxContentLength)      // Default
+		helpers.AssertIntEqual(t, 100, cfg.Quality.RateLimitPerMinute)      // Default
 		helpers.AssertFloat64Equal(t, 0.7, cfg.Quality.SpamThreshold, 0.01) // Default
 	})
 
@@ -249,22 +248,22 @@ server:
 access:
   owner_npub: "invalid-npub"  # Invalid npub format
 `
-		
+
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		_, err = tmpFile.WriteString(configContent)
 		helpers.AssertNoError(t, err)
 		tmpFile.Close()
-		
+
 		// Load config - should still work but with defaults for invalid values
 		cfg, err := Load(tmpFile.Name())
 		helpers.AssertNoError(t, err)
-		
+
 		// Invalid port should fall back to default
 		helpers.AssertIntEqual(t, 8080, cfg.Server.Port) // Default port, not -1
-		
+
 		// Invalid npub should still be stored (validation happens elsewhere)
 		helpers.AssertStringEqual(t, "invalid-npub", cfg.Access.OwnerNpub)
 	})
@@ -287,12 +286,12 @@ func TestConfigValidation(t *testing.T) {
 				AllowPublicWrite: false,
 			},
 			Quality: QualityConfig{
-				MaxContentLength:    10000,
+				MaxContentLength:   10000,
 				RateLimitPerMinute: 100,
-				SpamThreshold:       0.7,
+				SpamThreshold:      0.7,
 			},
 		}
-		
+
 		err := cfg.Validate()
 		helpers.AssertNoError(t, err)
 	})
@@ -306,7 +305,7 @@ func TestConfigValidation(t *testing.T) {
 				WriteTimeout: -1 * time.Second,
 			},
 		}
-		
+
 		err := cfg.Validate()
 		helpers.AssertError(t, err)
 		helpers.AssertErrorContains(t, err, "invalid server config")
@@ -322,7 +321,7 @@ func TestConfigValidation(t *testing.T) {
 				AllowPublicWrite: false,
 			},
 		}
-		
+
 		err := cfg.Validate()
 		helpers.AssertError(t, err)
 		helpers.AssertErrorContains(t, err, "invalid access config")
@@ -331,12 +330,12 @@ func TestConfigValidation(t *testing.T) {
 	t.Run("Invalid quality config", func(t *testing.T) {
 		cfg := &Config{
 			Quality: QualityConfig{
-				MaxContentLength:    -1,
+				MaxContentLength:   -1,
 				RateLimitPerMinute: -1,
-				SpamThreshold:       -1.0,
+				SpamThreshold:      -1.0,
 			},
 		}
-		
+
 		err := cfg.Validate()
 		helpers.AssertError(t, err)
 		helpers.AssertErrorContains(t, err, "invalid quality config")
@@ -347,68 +346,68 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 	t.Run("All environment variables", func(t *testing.T) {
 		// Set all environment variables
 		envVars := map[string]string{
-			"OWNER_NPUB":                "npub1env",
-			"NOSTR_RELAY_PORT":          "9090",
-			"ADMIN_PORT":                "9091",
-			"REST_API_PORT":             "9092",
-			"LOG_LEVEL":                 "debug",
-			"STREAMING_ENABLED":         "true",
-			"UPSTREAM_RELAYS":           "wss://relay1.com,wss://relay2.com",
-			"TOR_ENABLED":               "true",
-			"TOR_SOCKS_PORT":            "9050",
-			"TOR_CONTROL_PORT":          "9051",
-			"I2P_ENABLED":               "true",
-			"I2P_SAM_PORT":              "7656",
-			"XFTP_ENABLED":              "true",
-			"XFTP_PORT":                 "8443",
-			"XFTP_MAX_FILE_SIZE":        "100MB",
-			"API_KEY":                   "secret-key",
-			"CORS_ENABLED":              "true",
-			"RATE_LIMIT_PER_MINUTE":     "200",
-			"ACCESS_PUBLIC_READ":        "true",
-			"ACCESS_PUBLIC_WRITE":       "false",
-			"ACCESS_UPDATE_INTERVAL":    "2h",
-			"ACCESS_RELAY_URL":          "https://custom-relay.com",
-			"REDIS_HOST":                "redis.example.com",
-			"REDIS_PORT":                "6380",
-			"REDIS_PASSWORD":            "redis-pass",
-			"REDIS_DB":                  "5",
-			"RABBITMQ_HOST":             "rabbit.example.com",
-			"RABBITMQ_PORT":             "5673",
-			"RABBITMQ_USERNAME":         "rabbit-user",
-			"RABBITMQ_PASSWORD":         "rabbit-pass",
-			"RABBITMQ_VHOST":            "/custom",
+			"OWNER_NPUB":             "npub1env",
+			"NOSTR_RELAY_PORT":       "9090",
+			"ADMIN_PORT":             "9091",
+			"REST_API_PORT":          "9092",
+			"LOG_LEVEL":              "debug",
+			"STREAMING_ENABLED":      "true",
+			"UPSTREAM_RELAYS":        "wss://relay1.com,wss://relay2.com",
+			"TOR_ENABLED":            "true",
+			"TOR_SOCKS_PORT":         "9050",
+			"TOR_CONTROL_PORT":       "9051",
+			"I2P_ENABLED":            "true",
+			"I2P_SAM_PORT":           "7656",
+			"XFTP_ENABLED":           "true",
+			"XFTP_PORT":              "8443",
+			"XFTP_MAX_FILE_SIZE":     "100MB",
+			"API_KEY":                "secret-key",
+			"CORS_ENABLED":           "true",
+			"RATE_LIMIT_PER_MINUTE":  "200",
+			"ACCESS_PUBLIC_READ":     "true",
+			"ACCESS_PUBLIC_WRITE":    "false",
+			"ACCESS_UPDATE_INTERVAL": "2h",
+			"ACCESS_RELAY_URL":       "https://custom-relay.com",
+			"REDIS_HOST":             "redis.example.com",
+			"REDIS_PORT":             "6380",
+			"REDIS_PASSWORD":         "redis-pass",
+			"REDIS_DB":               "5",
+			"RABBITMQ_HOST":          "rabbit.example.com",
+			"RABBITMQ_PORT":          "5673",
+			"RABBITMQ_USERNAME":      "rabbit-user",
+			"RABBITMQ_PASSWORD":      "rabbit-pass",
+			"RABBITMQ_VHOST":         "/custom",
 		}
-		
+
 		for key, value := range envVars {
 			os.Setenv(key, value)
 		}
-		
+
 		defer func() {
 			for key := range envVars {
 				os.Unsetenv(key)
 			}
 		}()
-		
+
 		// Create minimal config file
 		configContent := `
 server:
   host: "localhost"
   port: 8080
 `
-		
+
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		_, err = tmpFile.WriteString(configContent)
 		helpers.AssertNoError(t, err)
 		tmpFile.Close()
-		
+
 		// Load config
 		cfg, err := Load(tmpFile.Name())
 		helpers.AssertNoError(t, err)
-		
+
 		// Verify environment variables are applied
 		helpers.AssertStringEqual(t, "npub1env", cfg.Access.OwnerNpub)
 		helpers.AssertIntEqual(t, 9090, cfg.Server.Port)
@@ -425,15 +424,13 @@ server:
 		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite)
 		helpers.AssertStringEqual(t, "2h", cfg.Access.UpdateInterval.String())
 		helpers.AssertStringEqual(t, "https://custom-relay.com", cfg.Access.RelayURL)
-		helpers.AssertStringEqual(t, "redis.example.com", cfg.Cache.Host)
-		helpers.AssertIntEqual(t, 6380, cfg.Cache.Port)
-		helpers.AssertStringEqual(t, "redis-pass", cfg.Cache.Password)
-		helpers.AssertIntEqual(t, 5, cfg.Cache.DB)
-		helpers.AssertStringEqual(t, "rabbit.example.com", cfg.RabbitMQ.Host)
-		helpers.AssertIntEqual(t, 5673, cfg.RabbitMQ.Port)
-		helpers.AssertStringEqual(t, "rabbit-user", cfg.RabbitMQ.Username)
-		helpers.AssertStringEqual(t, "rabbit-pass", cfg.RabbitMQ.Password)
-		helpers.AssertStringEqual(t, "/custom", cfg.RabbitMQ.VHost)
+		helpers.AssertStringEqual(t, "redis.example.com", cfg.Redis.Host)
+		helpers.AssertStringEqual(t, "redis-pass", cfg.Redis.Password)
+		helpers.AssertIntEqual(t, 5, cfg.Redis.DB)
+		helpers.AssertStringEqual(t, "amqp://rabbit-user:rabbit-pass@rabbit.example.com:5673/custom", cfg.RabbitMQ.URL)
+		helpers.AssertStringEqual(t, "events", cfg.RabbitMQ.ExchangeName)
+		helpers.AssertStringEqual(t, "events_queue", cfg.RabbitMQ.QueueName)
+		helpers.AssertStringEqual(t, "events_dlx", cfg.RabbitMQ.DLXName)
 	})
 }
 
@@ -454,16 +451,16 @@ server:
   port: 8080
 invalid: yaml: syntax: [error
 `
-		
+
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		helpers.AssertNoError(t, err)
 		_, err = tmpFile.WriteString(configContent)
 		helpers.AssertNoError(t, err)
 		tmpFile.Close()
-		
+
 		// Load config should fail
 		_, err = Load(tmpFile.Name())
 		helpers.AssertError(t, err)
@@ -477,13 +474,13 @@ func TestConfigEmptyFile(t *testing.T) {
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
 		helpers.AssertNoError(t, err)
 		defer os.Remove(tmpFile.Name())
-		
+
 		tmpFile.Close()
-		
+
 		// Load config should work with defaults
 		cfg, err := Load(tmpFile.Name())
 		helpers.AssertNoError(t, err)
-		
+
 		// Verify defaults are applied
 		helpers.AssertIntEqual(t, 8080, cfg.Server.Port)
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)

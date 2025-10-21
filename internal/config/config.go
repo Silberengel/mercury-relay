@@ -101,19 +101,19 @@ type AdminConfig struct {
 }
 
 type GRPCConfig struct {
-	Enabled           bool          `yaml:"enabled"`
-	ServerHost        string        `yaml:"server_host"`
-	ServerPort        int           `yaml:"server_port"`
-	Timeout           time.Duration `yaml:"timeout"`
-	MaxRetries        int           `yaml:"max_retries"`
-	RetryInterval     time.Duration `yaml:"retry_interval"`
-	TLSEnabled        bool          `yaml:"tls_enabled"`
-	CertFile          string        `yaml:"cert_file"`
-	KeyFile           string        `yaml:"key_file"`
-	KeepAliveTime     time.Duration `yaml:"keepalive_time"`
-	KeepAliveTimeout  time.Duration `yaml:"keepalive_timeout"`
-	MaxMessageSize    int           `yaml:"max_message_size"`
-	CompressionEnabled bool         `yaml:"compression_enabled"`
+	Enabled            bool          `yaml:"enabled"`
+	ServerHost         string        `yaml:"server_host"`
+	ServerPort         int           `yaml:"server_port"`
+	Timeout            time.Duration `yaml:"timeout"`
+	MaxRetries         int           `yaml:"max_retries"`
+	RetryInterval      time.Duration `yaml:"retry_interval"`
+	TLSEnabled         bool          `yaml:"tls_enabled"`
+	CertFile           string        `yaml:"cert_file"`
+	KeyFile            string        `yaml:"key_file"`
+	KeepAliveTime      time.Duration `yaml:"keepalive_time"`
+	KeepAliveTimeout   time.Duration `yaml:"keepalive_timeout"`
+	MaxMessageSize     int           `yaml:"max_message_size"`
+	CompressionEnabled bool          `yaml:"compression_enabled"`
 }
 
 type LoggingConfig struct {
@@ -175,4 +175,18 @@ func Load(path string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// Validate validates the configuration
+func (c *Config) Validate() error {
+	if c.Server.Port <= 0 || c.Server.Port > 65535 {
+		return fmt.Errorf("invalid server port: %d", c.Server.Port)
+	}
+	if c.Quality.MaxContentLength <= 0 {
+		return fmt.Errorf("invalid max content length: %d", c.Quality.MaxContentLength)
+	}
+	if c.Quality.RateLimitPerMinute <= 0 {
+		return fmt.Errorf("invalid rate limit: %d", c.Quality.RateLimitPerMinute)
+	}
+	return nil
 }
