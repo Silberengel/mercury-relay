@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  # RabbitMQ for message queuing
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: mercury-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - mercury-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: mercury-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mercury-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for analytics and blocklists
+  postgres:
+    image: postgres:15-alpine
+    container_name: mercury-postgres
+    environment:
+      POSTGRES_DB: mercury_relay
+      POSTGRES_USER: mercury
+      POSTGRES_PASSWORD: mercury
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - mercury-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mercury"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # XFTP Server (SimpleX)
+  xftp-server:
+    image: simplexchat/xftp-server:latest
+    container_name: mercury-xftp
+    environment:
+      ADDR: xftp-server
+      QUOTA: 10gb
+    ports:
+      - "443:443"
+    volumes:
+      - xftp_data:/srv/xftp
+      - xftp_configs:/etc/opt/simplex-xftp
+      - xftp_logs:/var/opt/simplex-xftp
+    networks:
+      - mercury-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:443/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Tor service
+  tor:
+    image: dperson/torproxy:latest
+    container_name: mercury-tor
+    ports:
+      - "9050:9050"  # SOCKS proxy
+      - "9051:9051"  # Control port
+    volumes:
+      - tor_data:/var/lib/tor
+    networks:
+      - mercury-network
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9050"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # I2P router
+  i2p:
+    image: geti2p/i2p:latest
+    container_name: mercury-i2p
+    ports:
+      - "7656:7656"  # SAM bridge
+      - "4444:4444"  # HTTP proxy
+      - "4445:4445"  # HTTPS proxy
+    volumes:
+      - i2p_data:/var/lib/i2p
+    networks:
+      - mercury-network
+    environment:
+      - I2P_OPTS=-Djava.net.preferIPv4Stack=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7657"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mercury Relay
+  mercury-relay:
+    build: .
+    container_name: mercury-relay
+    ports:
+      - "8080:8080"  # Main relay
+      - "8081:8081"  # Admin API
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/var/log/mercury-relay
+    networks:
+      - mercury-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      xftp-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+      # Access Control Environment Variables
+      - OWNER_NPUB=${OWNER_NPUB:-npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl}
+      - ACCESS_UPDATE_INTERVAL=${ACCESS_UPDATE_INTERVAL:-1h}
+      - ACCESS_RELAY_URL=${ACCESS_RELAY_URL:-https://relay.damus.io}
+      - ACCESS_PUBLIC_READ=${ACCESS_PUBLIC_READ:-true}
+      - ACCESS_PUBLIC_WRITE=${ACCESS_PUBLIC_WRITE:-false}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+  postgres_data:
+  xftp_data:
+  xftp_configs:
+  xftp_logs:
+  tor_data:
+  i2p_data:
+
+networks:
+  mercury-network:
+    driver: bridge

@@ -1,0 +1,127 @@
+# Mercury Relay Configuration
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+
+# Tor Configuration
+tor:
+  enabled: true
+  data_dir: "/var/lib/tor"
+  control_port: 9051
+  socks_port: 9050
+  hidden_service_dir: "/var/lib/tor/mercury_relay"
+  hidden_service_port: 80
+
+# I2P Configuration
+i2p:
+  enabled: true
+  sam_port: 7656
+  sam_host: "127.0.0.1"
+  tunnel_name: "mercury_relay"
+  tunnel_port: 8080
+
+# RabbitMQ Configuration
+rabbitmq:
+  url: "amqp://guest:guest@rabbitmq:5672/"
+  exchange_name: "nostr_events"
+  queue_name: "event_queue"
+  dlx_name: "nostr_dlx"
+  ttl: "28h"
+
+# Redis Configuration
+redis:
+  host: "redis:6379"
+  password: ""
+  db: 0
+  ttl: "28h"
+
+# XFTP Configuration
+xftp:
+  enabled: true
+  server_url: "xftp://localhost:443"
+  storage_dir: "/srv/xftp"
+  ttl: "48h"
+
+# PostgreSQL Configuration
+postgres:
+  host: "postgres:5432"
+  user: "mercury"
+  password: "mercury"
+  dbname: "mercury_relay"
+  sslmode: "disable"
+
+# Quality Control
+quality:
+  spam_threshold: 0.7
+  rate_limit_per_minute: 60
+  max_content_length: 10000
+  quarantine_suspicious: true
+
+# Access Control
+access:
+  owner_npub: "${OWNER_NPUB:-npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl}"
+  update_interval: "${ACCESS_UPDATE_INTERVAL:-1h}"
+  relay_url: "${ACCESS_RELAY_URL:-https://relay.damus.io}"
+  allow_public_read: "${ACCESS_PUBLIC_READ:-true}"
+  allow_public_write: "${ACCESS_PUBLIC_WRITE:-false}"
+
+# Admin Interface
+admin:
+  enabled: true
+  port: 8081
+  api_key: "change_this_secret_key"
+
+# REST API Configuration
+rest_api:
+  enabled: true
+  port: 8082
+  cors_enabled: true
+  cors_origins: ["*"]
+  rate_limit_per_minute: 100
+  endpoints:
+    events: "/api/v1/events"
+    query: "/api/v1/query"
+    publish: "/api/v1/publish"
+    ebooks: "/api/v1/ebooks"
+    ebook_content: "/api/v1/ebooks/{id}/content"
+    ebook_epub: "/api/v1/ebooks/{id}/epub"
+    health: "/api/v1/health"
+    stats: "/api/v1/stats"
+  ebook_optimization:
+    enabled: true
+    cache_duration: "1h"
+    max_file_size: "50MB"
+    supported_formats: ["epub", "pdf", "mobi", "txt"]
+
+# Streaming Configuration
+streaming:
+  enabled: true
+  upstream_relays:
+    - url: "wss://relay.damus.io"
+      enabled: true
+      priority: 1
+    - url: "wss://nostr.wine"
+      enabled: true
+      priority: 2
+    - url: "wss://nos.lol"
+      enabled: true
+      priority: 3
+  transport_methods:
+    websocket: true
+    tor: true
+    i2p: true
+    http_streaming: true  # HTTP streaming for server-side rendering
+    sse: true  # Server-Sent Events for real-time updates
+  connection_pool_size: 10
+  reconnect_interval: "30s"
+  timeout: "60s"
+
+# Logging
+logging:
+  level: "info"
+  format: "json"
+  file: "/var/log/mercury-relay.log"

@@ -1,0 +1,56 @@
+# Binaries
+mercury-relay
+mercury-admin
+test-data-gen
+
+# Logs
+*.log
+logs/
+
+# Data directories
+data/
+tor-data/
+i2p-data/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Go files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Dependencies
+vendor/
+
+# Docker volumes
+postgres_data/
+rabbitmq_data/
+redis_data/
+xftp_data/
+tor_data/
+i2p_data/
+
+# Configuration overrides
+config.local.yaml
+.env.local
+
+# Test data
+test-events.json
+test-data/
+
+# Temporary files
+tmp/
+temp/
