@@ -1,6 +1,6 @@
 # Mercury Relay
 
-A censorship-resistant Nostr relay that uses XFTP for ephemeral storage, RabbitMQ for message queuing, and operates over Tor and I2P hidden services.
+A high-performance, censorship-resistant Nostr relay with advanced quality control, REST API, streaming capabilities, e-paper reader support, and decentralized storage.
 
 ## Features
 
@@ -9,7 +9,11 @@ A censorship-resistant Nostr relay that uses XFTP for ephemeral storage, RabbitM
 - **Access Control**: Owner-based write permissions using follow lists (Kind 3 events)
 - **Quality Control**: Built-in spam detection and content moderation with NIP-based event kind validation
 - **REST API**: Full REST API support for programmatic access
-- **Streaming**: Connect to and stream events from other relays via WebSocket, Tor, I2P, and SSR
+- **Streaming**: Connect to and stream events from other relays via WebSocket, Tor, I2P, and HTTP streaming
+- **E-Paper Support**: Optimized for e-readers with EPUB generation and offline reading
+- **NKBIP-01 Support**: Full support for Nostr publications (kind 30040/30041)
+- **Environment Variables**: Runtime configuration via Docker environment variables
+- **Apache Integration**: Native Apache reverse proxy support
 - **Admin Interface**: Terminal UI for real-time monitoring and moderation
 - **Test Data Generation**: Generate realistic Nostr events for testing
 - **Multi-Transport**: Supports both Tor and I2P simultaneously
@@ -29,11 +33,49 @@ Nostr Client → [Tor .onion | I2P] → Go Relay → RabbitMQ → XFTP Server
                               Upstream Relays (Streaming)
 ```
 
-## New Features
+## Quick Start
+
+### Docker Deployment
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd mercury-relay
+
+# Basic deployment
+docker-compose up -d
+
+# With custom relays
+UPSTREAM_RELAYS="wss://your-relay1.com,wss://your-relay2.com" docker-compose up -d
+
+# With Tor and XFTP
+docker-compose -f docker-compose-tor.yml up -d
+```
+
+### Environment Variables
+
+```bash
+# Set upstream relays
+export UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com"
+
+# Enable features
+export STREAMING_ENABLED=true
+export TOR_ENABLED=true
+export XFTP_ENABLED=true
+
+# Run with environment
+docker run -d --name mercury-relay \
+  -p 8080:8080 -p 8081:8081 -p 8082:8082 \
+  -e STREAMING_ENABLED=true \
+  -e UPSTREAM_RELAYS="$UPSTREAM_RELAYS" \
+  mercury-relay
+```
+
+## Features
 
 ### REST API
 
-Mercury Relay now includes a comprehensive REST API for programmatic access:
+Mercury Relay includes a comprehensive REST API for programmatic access:
 
 - **GET /api/v1/events** - Query events with filters
 - **POST /api/v1/query** - Advanced event queries
@@ -76,6 +118,117 @@ curl "http://localhost:8082/api/v1/ebooks/book_id_here/content?format=html&image
 curl "http://localhost:8082/api/v1/ebooks/book_id_here/epub?images=true" -o "book.epub"
 curl "http://localhost:8082/api/v1/ebooks/book_id_here/epub?format=epub&images=false" -o "book.epub"
 ```
+
+## Deployment Options
+
+### 1. Basic Docker Deployment
+
+```bash
+# Quick start with default configuration
+docker-compose up -d
+
+# Check status
+docker-compose ps
+docker-compose logs -f
+```
+
+### 2. Custom Configuration
+
+```bash
+# Set custom upstream relays
+export UPSTREAM_RELAYS="wss://your-relay1.com,wss://your-relay2.com"
+
+# Deploy with custom settings
+docker-compose up -d
+```
+
+### 3. Tor Hidden Service
+
+```bash
+# Deploy with Tor support
+docker-compose -f docker-compose-tor.yml up -d
+
+# Get Tor address
+docker-compose -f docker-compose-tor.yml exec mercury-tor cat /var/lib/tor/mercury_relay/hostname
+```
+
+### 4. Apache Integration
+
+```bash
+# Configure Apache on host system
+sudo ./apache-setup.sh
+
+# Start Mercury Relay
+docker-compose up -d mercury-relay redis postgres
+```
+
+### 5. Production Deployment
+
+```bash
+# Production configuration
+docker run -d --name mercury-relay \
+  -p 8080:8080 -p 8081:8081 -p 8082:8082 \
+  -v /opt/mercury/data:/app/data \
+  -v /opt/mercury/logs:/app/logs \
+  -e STREAMING_ENABLED=true \
+  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
+  -e TOR_ENABLED=true \
+  -e XFTP_ENABLED=true \
+  -e LOG_LEVEL=warn \
+  -e RATE_LIMIT_PER_MINUTE=200 \
+  -e API_KEY="your-production-api-key" \
+  --restart unless-stopped \
+  mercury-relay
+```
+
+## Configuration
+
+### Environment Variables
+
+Mercury Relay supports extensive configuration via environment variables:
+
+```bash
+# Core Settings
+NOSTR_RELAY_PORT=8080
+ADMIN_PORT=8081
+REST_API_PORT=8082
+LOG_LEVEL=info
+
+# Streaming
+STREAMING_ENABLED=true
+UPSTREAM_RELAYS=wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com
+
+# Tor Support
+TOR_ENABLED=false
+TOR_SOCKS_PORT=9050
+TOR_CONTROL_PORT=9051
+
+# XFTP Storage
+XFTP_ENABLED=false
+XFTP_PORT=8083
+XFTP_MAX_FILE_SIZE=50MB
+
+# Security
+API_KEY=change_this_secret_key
+CORS_ENABLED=true
+RATE_LIMIT_PER_MINUTE=100
+```
+
+### Configuration Files
+
+- **`config.yaml`** - Main configuration file
+- **`nostr-event-kinds.yaml`** - Event kind validation rules
+- **`streaming-config.yaml`** - Streaming configuration
+- **`env.example`** - Environment variables reference
+
+### Default Upstream Relays
+
+Mercury Relay is configured to stream from these relays by default:
+
+1. **`wss://theforest.nostr1.com`** - High performance relay
+2. **`wss://orlay-relay.imwald.eu`** - European relay  
+3. **`wss://nostr.land`** - Community relay
+4. **`wss://nostr21.com`** - Alternative relay
 
 ### Streaming from Other Relays
 
@@ -598,6 +751,116 @@ docker-compose logs
 docker-compose logs mercury-relay
 docker-compose logs rabbitmq
 docker-compose logs redis
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## Documentation
+
+### Detailed Guides
+
+- **[Docker Deployment](README-Docker.md)** - Complete Docker setup guide
+- **[Apache Integration](README-Apache.md)** - Apache reverse proxy configuration
+- **[Environment Variables](README-Environment.md)** - Runtime configuration guide
+- **[Streaming Setup](README-Streaming.md)** - Upstream relay configuration
+- **[Tor Setup](tor-setup.sh)** - Tor hidden service configuration
+- **[XFTP Setup](xftp-setup.sh)** - Decentralized storage setup
+
+### Scripts
+
+- **`deploy.sh`** - Basic deployment script
+- **`deploy-tor.sh`** - Deployment with Tor and XFTP
+- **`streaming-setup.sh`** - Configure upstream relays
+- **`apache-setup.sh`** - Apache configuration
+- **`tor-setup.sh`** - Tor hidden service setup
+- **`xftp-setup.sh`** - XFTP storage setup
+- **`docker-run.sh`** - Docker run examples
+
+### Configuration Files
+
+- **`config.yaml`** - Main configuration
+- **`nostr-event-kinds.yaml`** - Event kind validation
+- **`streaming-config.yaml`** - Streaming configuration
+- **`env.example`** - Environment variables
+- **`docker-compose.yml`** - Basic Docker setup
+- **`docker-compose-tor.yml`** - Tor and XFTP setup
+- **`apache.conf`** - Apache virtual host
+- **`nginx.conf`** - Nginx configuration (alternative)
+
+## API Endpoints
+
+### Nostr Protocol
+- **WebSocket**: `ws://localhost:8080/` - Nostr protocol endpoint
+
+### REST API
+- **Events**: `GET /api/v1/events` - Query events
+- **Query**: `POST /api/v1/query` - Advanced queries
+- **Publish**: `POST /api/v1/publish` - Publish events
+- **Stream**: `GET /api/v1/stream` - HTTP streaming
+- **SSE**: `GET /api/v1/sse` - Server-Sent Events
+- **E-books**: `GET /api/v1/ebooks` - Publication discovery
+- **E-book Content**: `GET /api/v1/ebooks/{id}/content` - Nested content
+- **EPUB Generation**: `GET /api/v1/ebooks/{id}/epub` - Generate EPUB
+- **Health**: `GET /api/v1/health` - Health check
+- **Stats**: `GET /api/v1/stats` - Statistics
+
+### Admin API
+- **Admin**: `http://localhost:8081/` - Admin interface
+- **Metrics**: `http://localhost:8081/metrics` - Performance metrics
+
+## Monitoring
+
+### Health Checks
+```bash
+# Check service health
+curl http://localhost:8080/health
+curl http://localhost:8082/api/v1/health
+
+# View logs
+docker-compose logs -f mercury-relay
+
+# Check container status
+docker-compose ps
+```
+
+### Metrics
+```bash
+# View statistics
+curl http://localhost:8082/api/v1/stats
+
+# View metrics
+curl http://localhost:8081/metrics
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts**: Check if ports 8080, 8081, 8082 are available
+2. **Relay connectivity**: Test upstream relay connections
+3. **Permission issues**: Check Docker volume permissions
+4. **Configuration errors**: Validate YAML configuration files
+
+### Debug Commands
+
+```bash
+# Check configuration
+docker-compose config
+
+# View detailed logs
+docker-compose logs -f mercury-relay
+
+# Test connectivity
+./streaming-setup.sh
+
+# Check environment variables
+docker exec mercury-relay env | grep -E "(STREAMING|UPSTREAM|TOR|XFTP)"
 ```
 
 ## Contributing
