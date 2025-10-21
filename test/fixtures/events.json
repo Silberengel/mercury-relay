@@ -1,0 +1,123 @@
+{
+  "test_events": [
+    {
+      "id": "test_event_1",
+      "pubkey": "npub1test1",
+      "created_at": 1640995200,
+      "kind": 1,
+      "tags": [
+        ["t", "test"],
+        ["p", "npub1test2"]
+      ],
+      "content": "This is a test text note with some content for testing purposes.",
+      "sig": "test_signature_1"
+    },
+    {
+      "id": "test_event_2",
+      "pubkey": "npub1test1",
+      "created_at": 1640995260,
+      "kind": 0,
+      "tags": [],
+      "content": "{\"name\": \"Test User\", \"about\": \"A test user for testing\"}",
+      "sig": "test_signature_2"
+    },
+    {
+      "id": "test_event_3",
+      "pubkey": "npub1test2",
+      "created_at": 1640995320,
+      "kind": 1,
+      "tags": [
+        ["t", "reply"],
+        ["e", "test_event_1"]
+      ],
+      "content": "This is a reply to the test event.",
+      "sig": "test_signature_3"
+    },
+    {
+      "id": "test_event_4",
+      "pubkey": "npub1test1",
+      "created_at": 1640995380,
+      "kind": 3,
+      "tags": [
+        ["p", "npub1test2", "", "follow"],
+        ["p", "npub1test3", "", "follow"]
+      ],
+      "content": "",
+      "sig": "test_signature_4"
+    },
+    {
+      "id": "test_event_5",
+      "pubkey": "npub1test3",
+      "created_at": 1640995440,
+      "kind": 30040,
+      "tags": [
+        ["d", "test-book-1"]
+      ],
+      "content": "{\"title\": \"Test Book\", \"author\": \"Test Author\", \"format\": \"epub\", \"description\": \"A test book for testing ebook functionality\"}",
+      "sig": "test_signature_5"
+    },
+    {
+      "id": "test_event_6",
+      "pubkey": "npub1test3",
+      "created_at": 1640995500,
+      "kind": 30041,
+      "tags": [
+        ["a", "30040:npub1test3:test-book-1"],
+        ["d", "chapter-1"]
+      ],
+      "content": "{\"title\": \"Chapter 1\", \"content\": \"This is the first chapter of the test book.\", \"format\": \"asciidoc\"}",
+      "sig": "test_signature_6"
+    }
+  ],
+  "spam_events": [
+    {
+      "id": "spam_event_1",
+      "pubkey": "npub1spam",
+      "created_at": 1640995200,
+      "kind": 1,
+      "tags": [
+        ["t", "spam1"],
+        ["t", "spam2"],
+        ["t", "spam3"],
+        ["t", "spam4"],
+        ["t", "spam5"],
+        ["t", "spam6"],
+        ["t", "spam7"],
+        ["t", "spam8"],
+        ["t", "spam9"],
+        ["t", "spam10"],
+        ["t", "spam11"],
+        ["t", "spam12"],
+        ["t", "spam13"],
+        ["t", "spam14"],
+        ["t", "spam15"],
+        ["t", "spam16"],
+        ["t", "spam17"],
+        ["t", "spam18"],
+        ["t", "spam19"],
+        ["t", "spam20"],
+        ["t", "spam21"],
+        ["t", "spam22"],
+        ["t", "spam23"],
+        ["t", "spam24"],
+        ["t", "spam25"]
+      ],
+      "content": "spam",
+      "sig": "spam_signature_1"
+    }
+  ],
+  "high_quality_events": [
+    {
+      "id": "quality_event_1",
+      "pubkey": "npub1quality",
+      "created_at": 1640995200,
+      "kind": 1,
+      "tags": [
+        ["t", "quality"],
+        ["t", "meaningful"]
+      ],
+      "content": "This is a high-quality post with meaningful content that provides value to the community. It contains thoughtful insights and relevant information that contributes to the conversation in a constructive way.",
+      "sig": "quality_signature_1"
+    }
+  ]
+}

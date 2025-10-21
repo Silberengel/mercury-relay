@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # Test Redis instance
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-test-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Test RabbitMQ instance
+  rabbitmq-test:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-test-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test PostgreSQL instance
+  postgres-test:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mercury_test
+      POSTGRES_USER: mercury
+      POSTGRES_PASSWORD: mercury
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mercury"]
+      interval: 5s
+      timeout: 3s
+     "
+      retries: 5
+
+  # Test XFTP server
+  xftp-test:
+    image: simplex/xftp-server:latest
+    ports:
+      - "443:443"
+    environment:
+      XFTP_SERVER_PORT: 443
+      XFTP_MAX_FILE_SIZE: 50MB
+    volumes:
+      - xftp-test-data:/var/lib/xftp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:443/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Tor instance
+  tor-test:
+    image: dperson/torproxy:latest
+    ports:
+      - "9050:9050"
+      - "9051:9051"
+    environment:
+      TOR_NewCircuitPeriod: 30
+      TOR_MaxCircuitDirtiness: 600
+    volumes:
+      - tor-test-data:/var/lib/tor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9050"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Test I2P instance
+  i2p-test:
+    image: geti2p/i2p:latest
+    ports:
+      - "7656:7656"
+      - "4444:4444"
+      - "4445:4445"
+    volumes:
+      - i2p-test-data:/var/lib/i2p
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7657"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mock upstream relay for testing
+  mock-relay:
+    build:
+      context: .
+      dockerfile: test/Dockerfile.mock-relay
+    ports:
+      - "8083:8080"
+      - "9091:9090"  # Mock gRPC server
+    environment:
+      RELAY_PORT: 8080
+      GRPC_PORT: 9090
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-test-data:
+  rabbitmq-test-data:
+  postgres-test-data:
+  xftp-test-data:
+  tor-test-data:
+  i2p-test-data:
+
+networks:
+  default:
+    name: mercury-test-network

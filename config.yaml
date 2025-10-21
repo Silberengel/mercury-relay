@@ -97,6 +97,22 @@ rest_api:
     max_file_size: "50MB"
     supported_formats: ["epub", "pdf", "mobi", "txt"]
 
+# gRPC Configuration
+grpc:
+  enabled: ${GRPC_ENABLED:-true}
+  server_host: ${GRPC_SERVER_HOST:-localhost}
+  server_port: ${GRPC_SERVER_PORT:-9090}
+  timeout: "30s"
+  max_retries: 3
+  retry_interval: "5s"
+  tls_enabled: ${GRPC_TLS_ENABLED:-false}
+  cert_file: ${GRPC_CERT_FILE:-""}
+  key_file: ${GRPC_KEY_FILE:-""}
+  keepalive_time: "30s"
+  keepalive_timeout: "5s"
+  max_message_size: 4194304  # 4MB
+  compression_enabled: true
+
 # Streaming Configuration
 streaming:
   enabled: ${STREAMING_ENABLED:-true}
@@ -107,6 +123,7 @@ streaming:
     i2p: true
     http_streaming: true  # HTTP streaming for server-side rendering
     sse: true  # Server-Sent Events for real-time updates
+    grpc: true  # gRPC for high-performance communication
   connection_pool_size: 10
   reconnect_interval: "30s"
   timeout: "60s"

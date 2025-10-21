@@ -59,6 +59,7 @@ streaming:
     sse: true
     tor: true
     i2p: true
+    grpc: true
 
   # Connection settings
   connection_pool_size: 10

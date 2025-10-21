@@ -9,7 +9,7 @@ A high-performance, censorship-resistant Nostr relay with advanced quality contr
 - **Access Control**: Owner-based write permissions using follow lists (Kind 3 events)
 - **Quality Control**: Built-in spam detection and content moderation with NIP-based event kind validation
 - **REST API**: Full REST API support for programmatic access
-- **Streaming**: Connect to and stream events from other relays via WebSocket, Tor, I2P, and HTTP streaming
+- **Streaming**: Connect to and stream events from other relays via WebSocket, Tor, I2P, HTTP streaming, and gRPC
 - **E-Paper Support**: Optimized for e-readers with EPUB generation and offline reading
 - **NKBIP-01 Support**: Full support for Nostr publications (kind 30040/30041)
 - **Environment Variables**: Runtime configuration via Docker environment variables
@@ -264,6 +264,35 @@ streaming:
     sse: true
     tor: true
     i2p: true
+    grpc: true
+```
+
+### gRPC Support
+
+High-performance gRPC transport for enhanced communication:
+
+- **TLS Support**: Secure encrypted connections with certificate-based authentication
+- **Compression**: Built-in gzip compression for reduced bandwidth usage
+- **Keep-Alive**: Configurable keep-alive settings for persistent connections
+- **Message Size**: Configurable maximum message size (default: 4MB)
+- **Retry Logic**: Automatic reconnection with configurable retry intervals
+
+Configure gRPC in `config.yaml`:
+```yaml
+grpc:
+  enabled: true
+  server_host: localhost
+  server_port: 9090
+  timeout: "30s"
+  max_retries: 3
+  retry_interval: "5s"
+  tls_enabled: false
+  cert_file: ""
+  key_file: ""
+  keepalive_time: "30s"
+  keepalive_timeout: "5s"
+  max_message_size: 4194304  # 4MB
+  compression_enabled: true
 ```
 
 ### E-Paper Reader Support

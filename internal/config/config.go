@@ -19,6 +19,7 @@ type Config struct {
 	Quality   QualityConfig   `yaml:"quality"`
 	Access    AccessConfig    `yaml:"access"`
 	Admin     AdminConfig     `yaml:"admin"`
+	GRPC      GRPCConfig      `yaml:"grpc"`
 	RESTAPI   RESTAPIConfig   `yaml:"rest_api"`
 	Streaming StreamingConfig `yaml:"streaming"`
 	Logging   LoggingConfig   `yaml:"logging"`
@@ -99,6 +100,22 @@ type AdminConfig struct {
 	APIKey  string `yaml:"api_key"`
 }
 
+type GRPCConfig struct {
+	Enabled           bool          `yaml:"enabled"`
+	ServerHost        string        `yaml:"server_host"`
+	ServerPort        int           `yaml:"server_port"`
+	Timeout           time.Duration `yaml:"timeout"`
+	MaxRetries        int           `yaml:"max_retries"`
+	RetryInterval     time.Duration `yaml:"retry_interval"`
+	TLSEnabled        bool          `yaml:"tls_enabled"`
+	CertFile          string        `yaml:"cert_file"`
+	KeyFile           string        `yaml:"key_file"`
+	KeepAliveTime     time.Duration `yaml:"keepalive_time"`
+	KeepAliveTimeout  time.Duration `yaml:"keepalive_timeout"`
+	MaxMessageSize    int           `yaml:"max_message_size"`
+	CompressionEnabled bool         `yaml:"compression_enabled"`
+}
+
 type LoggingConfig struct {
 	Level  string `yaml:"level"`
 	Format string `yaml:"format"`
@@ -143,6 +160,7 @@ type TransportMethods struct {
 	I2P           bool `yaml:"i2p"`
 	HTTPStreaming bool `yaml:"http_streaming"`
 	SSE           bool `yaml:"sse"`
+	GRPC          bool `yaml:"grpc"`
 }
 
 func Load(path string) (*Config, error) {
