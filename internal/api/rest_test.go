@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"mercury-relay/internal/config"
 	"mercury-relay/internal/models"
@@ -72,13 +71,13 @@ func TestRESTAPIGetEvents(t *testing.T) {
 
 		// Create events with different timestamps
 		event1 := eg.GenerateTextNote(npub, "Message 1", nostr.Tags{})
-		event1.CreatedAt = time.Unix(1640995200, 0)
+		event1.CreatedAt = nostr.Timestamp(1640995200)
 
 		event2 := eg.GenerateTextNote(npub, "Message 2", nostr.Tags{})
-		event2.CreatedAt = time.Unix(1640995300, 0)
+		event2.CreatedAt = nostr.Timestamp(1640995300)
 
 		event3 := eg.GenerateTextNote(npub, "Message 3", nostr.Tags{})
-		event3.CreatedAt = time.Unix(1640995400, 0)
+		event3.CreatedAt = nostr.Timestamp(1640995400)
 
 		mockCache.SetEvents([]*models.Event{event1, event2, event3})
 
@@ -179,12 +178,18 @@ func TestRESTAPIPublish(t *testing.T) {
 		}
 
 		reqBody, _ := json.Marshal(publishReq)
+		t.Logf("Request JSON: %s", string(reqBody))
 		req := httptest.NewRequest("POST", "/api/v1/publish", bytes.NewReader(reqBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
 		// Execute request
 		server.handlePublish(w, req)
+
+		// Debug: Print response if not 200
+		if w.Code != http.StatusOK {
+			t.Logf("Response code: %d, Body: %s", w.Code, w.Body.String())
+		}
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -215,7 +220,7 @@ func TestRESTAPIPublish(t *testing.T) {
 		event := &models.Event{
 			ID:        "", // Missing ID
 			PubKey:    "", // Missing PubKey
-			CreatedAt: time.Now(),
+			CreatedAt: nostr.Now(),
 			Kind:      1,
 			Tags:      nostr.Tags{},
 			Content:   "test",
@@ -241,7 +246,7 @@ func TestRESTAPIPublish(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		helpers.AssertNoError(t, err)
 		helpers.AssertBoolEqual(t, false, response.Success)
-		helpers.AssertErrorContains(t, err, "validation failed")
+		helpers.AssertStringContains(t, response.Error, "validation failed")
 	})
 }
 

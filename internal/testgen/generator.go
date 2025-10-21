@@ -137,7 +137,7 @@ func (g *Generator) generateEvent(persona Persona) *models.Event {
 	// Create event
 	event := &models.Event{
 		PubKey:      persona.PubKey,
-		CreatedAt:   time.Now().Add(-time.Duration(g.rand.Intn(3600)) * time.Second), // Random time in last hour
+		CreatedAt:   nostr.Timestamp(time.Now().Add(-time.Duration(g.rand.Intn(3600)) * time.Second).Unix()), // Random time in last hour
 		Kind:        g.selectKind(persona),
 		Tags:        tags,
 		Content:     content,
@@ -213,7 +213,7 @@ func (g *Generator) selectKind(persona Persona) int {
 
 func (g *Generator) generateEventID(event *models.Event) string {
 	// Simplified event ID generation
-	data := fmt.Sprintf("%s%s%d%s", event.PubKey, event.CreatedAt.Format(time.RFC3339), event.Kind, event.Content)
+	data := fmt.Sprintf("%s%s%d%s", event.PubKey, event.CreatedAt.Time().Format(time.RFC3339), event.Kind, event.Content)
 	hash := chainhash.HashH([]byte(data))
 	return hash.String()
 }

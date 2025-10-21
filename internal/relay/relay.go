@@ -301,7 +301,7 @@ func (s *Server) handleEVENT(conn *Connection, args []interface{}) error {
 		event.PubKey = pubkey
 	}
 	if createdAt, ok := eventData["created_at"].(float64); ok {
-		event.CreatedAt = time.Unix(int64(createdAt), 0)
+		event.CreatedAt = nostr.Timestamp(createdAt)
 	}
 	if kind, ok := eventData["kind"].(float64); ok {
 		event.Kind = int(kind)
@@ -415,14 +415,14 @@ func (s *Server) eventMatchesFilter(event *models.Event, filter nostr.Filter) bo
 
 	// Check since
 	if filter.Since != nil && *filter.Since > 0 {
-		if nostr.Timestamp(event.CreatedAt.Unix()) < *filter.Since {
+		if nostr.Timestamp(int64(event.CreatedAt)) < *filter.Since {
 			return false
 		}
 	}
 
 	// Check until
 	if filter.Until != nil && *filter.Until > 0 {
-		if nostr.Timestamp(event.CreatedAt.Unix()) > *filter.Until {
+		if nostr.Timestamp(int64(event.CreatedAt)) > *filter.Until {
 			return false
 		}
 	}

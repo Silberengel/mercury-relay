@@ -2,7 +2,6 @@ package cache
 
 import (
 	"testing"
-	"time"
 
 	"mercury-relay/internal/models"
 	"mercury-relay/test/helpers"
@@ -125,13 +124,13 @@ func TestRedisCacheGetEvents(t *testing.T) {
 
 		// Create events with different timestamps
 		event1 := eg.GenerateTextNote(npub1, "Message 1", nostr.Tags{})
-		event1.CreatedAt = time.Unix(1640995200, 0) // Earlier time
+		event1.CreatedAt = nostr.Timestamp(1640995200) // Earlier time
 
 		event2 := eg.GenerateTextNote(npub2, "Message 2", nostr.Tags{})
-		event2.CreatedAt = time.Unix(1640995300, 0) // Later time
+		event2.CreatedAt = nostr.Timestamp(1640995300) // Later time
 
 		event3 := eg.GenerateUserMetadata(npub1, map[string]interface{}{"name": "User"})
-		event3.CreatedAt = time.Unix(1640995250, 0) // Middle time
+		event3.CreatedAt = nostr.Timestamp(1640995250) // Middle time
 
 		mockCache.SetEvents([]*models.Event{event1, event2, event3})
 

@@ -91,7 +91,7 @@ func TestEventValidation(t *testing.T) {
 
 	t.Run("Event too old", func(t *testing.T) {
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
-		event.CreatedAt = time.Now().Add(-2 * time.Hour) // 2 hours ago
+		event.CreatedAt = nostr.Timestamp(time.Now().Add(-2 * time.Hour).Unix()) // 2 hours ago
 		err := event.Validate()
 		assertError(t, err)
 		assertErrorContains(t, err, "too old")
@@ -99,7 +99,7 @@ func TestEventValidation(t *testing.T) {
 
 	t.Run("Event in future", func(t *testing.T) {
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test content", nostr.Tags{})
-		event.CreatedAt = time.Now().Add(10 * time.Minute) // 10 minutes in future
+		event.CreatedAt = nostr.Timestamp(time.Now().Add(10 * time.Minute).Unix()) // 10 minutes in future
 		err := event.Validate()
 		assertError(t, err)
 		assertErrorContains(t, err, "future")
@@ -122,7 +122,7 @@ func TestEventValidation(t *testing.T) {
 		event := &Event{
 			ID:        "",
 			PubKey:    "",
-			CreatedAt: time.Now(),
+			CreatedAt: nostr.Now(),
 			Kind:      1,
 			Tags:      nostr.Tags{},
 			Content:   "test",
@@ -208,7 +208,7 @@ func TestEventSerialization(t *testing.T) {
 		assertNoError(t, err)
 
 		// Compare timestamps (should be handled correctly)
-		helpers.AssertInt64Equal(t, original.CreatedAt.Unix(), unmarshaled.CreatedAt.Unix())
+		helpers.AssertInt64Equal(t, int64(original.CreatedAt), int64(unmarshaled.CreatedAt))
 		helpers.AssertStringEqual(t, original.ID, unmarshaled.ID)
 		helpers.AssertStringEqual(t, original.PubKey, unmarshaled.PubKey)
 	})

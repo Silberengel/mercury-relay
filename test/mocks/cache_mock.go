@@ -189,14 +189,14 @@ func (m *MockCache) eventMatchesFilter(event *models.Event, filter nostr.Filter)
 
 	// Check since
 	if filter.Since != nil && *filter.Since > 0 {
-		if nostr.Timestamp(event.CreatedAt.Unix()) < *filter.Since {
+		if nostr.Timestamp(int64(event.CreatedAt)) < *filter.Since {
 			return false
 		}
 	}
 
 	// Check until
 	if filter.Until != nil && *filter.Until > 0 {
-		if nostr.Timestamp(event.CreatedAt.Unix()) > *filter.Until {
+		if nostr.Timestamp(int64(event.CreatedAt)) > *filter.Until {
 			return false
 		}
 	}

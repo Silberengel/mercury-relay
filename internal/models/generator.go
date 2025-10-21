@@ -67,7 +67,7 @@ func (eg *EventGenerator) GenerateTextNote(npub string, content string, tags nos
 	event := &Event{
 		ID:        eg.generateEventID(npub, content),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      1,
 		Tags:      tags,
 		Content:   content,
@@ -83,7 +83,7 @@ func (eg *EventGenerator) GenerateUserMetadata(npub string, metadata map[string]
 	event := &Event{
 		ID:        eg.generateEventID(npub, string(content)),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      0,
 		Tags:      nostr.Tags{},
 		Content:   string(content),
@@ -103,7 +103,7 @@ func (eg *EventGenerator) GenerateFollowList(npub string, followedNpubs []string
 	event := &Event{
 		ID:        eg.generateEventID(npub, "follows"),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      3,
 		Tags:      tags,
 		Content:   "",
@@ -116,17 +116,17 @@ func (eg *EventGenerator) GenerateFollowList(npub string, followedNpubs []string
 // GenerateEbook creates a kind 30040 (ebook) event
 func (eg *EventGenerator) GenerateEbook(npub string, bookMetadata map[string]interface{}) *Event {
 	content, _ := json.Marshal(bookMetadata)
-	
+
 	// Safely extract identifier with fallback
 	identifier := "unknown"
 	if id, ok := bookMetadata["identifier"].(string); ok && id != "" {
 		identifier = id
 	}
-	
+
 	event := &Event{
 		ID:        eg.generateEventID(npub, string(content)),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      30040,
 		Tags:      nostr.Tags{[]string{"d", identifier}},
 		Content:   string(content),
@@ -142,7 +142,7 @@ func (eg *EventGenerator) GenerateEbookContent(npub string, bookIdentifier strin
 	event := &Event{
 		ID:        eg.generateEventID(npub, string(content)),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      30041,
 		Tags:      nostr.Tags{[]string{"a", fmt.Sprintf("30040:%s:%s", npub, bookIdentifier)}, []string{"d", chapterData["identifier"].(string)}},
 		Content:   string(content),
@@ -163,7 +163,7 @@ func (eg *EventGenerator) GenerateSpamEvent(npub string) *Event {
 	event := &Event{
 		ID:        eg.generateEventID(npub, "spam"),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      1,
 		Tags:      tags,
 		Content:   "spam", // Very short content
@@ -186,7 +186,7 @@ func (eg *EventGenerator) GenerateHighQualityEvent(npub string) *Event {
 	event := &Event{
 		ID:        eg.generateEventID(npub, content),
 		PubKey:    npub,
-		CreatedAt: time.Now(),
+		CreatedAt: nostr.Now(),
 		Kind:      1,
 		Tags:      tags,
 		Content:   content,

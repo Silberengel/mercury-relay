@@ -252,7 +252,7 @@ func (u *UpstreamManager) handleUpstreamEvent(conn *UpstreamConnection, args []i
 		event.PubKey = pubkey
 	}
 	if createdAt, ok := eventData["created_at"].(float64); ok {
-		event.CreatedAt = time.Unix(int64(createdAt), 0)
+		event.CreatedAt = nostr.Timestamp(createdAt)
 	}
 	if kind, ok := eventData["kind"].(float64); ok {
 		event.Kind = int(kind)

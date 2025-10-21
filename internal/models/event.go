@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,17 +9,17 @@ import (
 
 // Event represents a Nostr event with additional metadata
 type Event struct {
-	ID               string     `json:"id" db:"id"`
-	PubKey           string     `json:"pubkey" db:"pubkey"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
-	Kind             int        `json:"kind" db:"kind"`
-	Tags             nostr.Tags `json:"tags" db:"tags"`
-	Content          string     `json:"content" db:"content"`
-	Sig              string     `json:"sig" db:"sig"`
-	QualityScore     float64    `json:"quality_score" db:"quality_score"`
-	IsQuarantined    bool       `json:"is_quarantined" db:"is_quarantined"`
-	QuarantineReason string     `json:"quarantine_reason" db:"quarantine_reason"`
-	CreatedAtDB      time.Time  `json:"created_at_db" db:"created_at_db"`
+	ID               string          `json:"id" db:"id"`
+	PubKey           string          `json:"pubkey" db:"pubkey"`
+	CreatedAt        nostr.Timestamp `json:"created_at" db:"created_at"`
+	Kind             int             `json:"kind" db:"kind"`
+	Tags             nostr.Tags      `json:"tags" db:"tags"`
+	Content          string          `json:"content" db:"content"`
+	Sig              string          `json:"sig" db:"sig"`
+	QualityScore     float64         `json:"quality_score" db:"quality_score"`
+	IsQuarantined    bool            `json:"is_quarantined" db:"is_quarantined"`
+	QuarantineReason string          `json:"quarantine_reason" db:"quarantine_reason"`
+	CreatedAtDB      time.Time       `json:"created_at_db" db:"created_at_db"`
 }
 
 // ToNostrEvent converts our Event to a nostr.Event
@@ -28,7 +27,7 @@ func (e *Event) ToNostrEvent() *nostr.Event {
 	return &nostr.Event{
 		ID:        e.ID,
 		PubKey:    e.PubKey,
-		CreatedAt: nostr.Timestamp(e.CreatedAt.Unix()),
+		CreatedAt: e.CreatedAt,
 		Kind:      e.Kind,
 		Tags:      e.Tags,
 		Content:   e.Content,
@@ -41,7 +40,7 @@ func FromNostrEvent(ne *nostr.Event) *Event {
 	return &Event{
 		ID:          ne.ID,
 		PubKey:      ne.PubKey,
-		CreatedAt:   time.Unix(int64(ne.CreatedAt), 0),
+		CreatedAt:   ne.CreatedAt,
 		Kind:        ne.Kind,
 		Tags:        ne.Tags,
 		Content:     ne.Content,
@@ -53,12 +52,12 @@ func FromNostrEvent(ne *nostr.Event) *Event {
 // Validate performs basic validation on the event
 func (e *Event) Validate() error {
 	// Check if event is not too old (1 hour tolerance)
-	if time.Since(e.CreatedAt) > time.Hour {
+	if time.Since(e.CreatedAt.Time()) > time.Hour {
 		return ErrEventTooOld
 	}
 
 	// Check if event is not in the future (5 minutes tolerance)
-	if e.CreatedAt.After(time.Now().Add(5 * time.Minute)) {
+	if e.CreatedAt.Time().After(time.Now().Add(5 * time.Minute)) {
 		return ErrEventInFuture
 	}
 
@@ -120,33 +119,7 @@ func (e *Event) IsSpam(threshold float64) bool {
 	return e.CalculateQualityScore() < threshold
 }
 
-// MarshalJSON custom JSON marshaling
-func (e *Event) MarshalJSON() ([]byte, error) {
-	type Alias Event
-	return json.Marshal(&struct {
-		*Alias
-		CreatedAt int64 `json:"created_at"`
-	}{
-		Alias:     (*Alias)(e),
-		CreatedAt: e.CreatedAt.Unix(),
-	})
-}
-
-// UnmarshalJSON custom JSON unmarshaling
-func (e *Event) UnmarshalJSON(data []byte) error {
-	type Alias Event
-	aux := &struct {
-		*Alias
-		CreatedAt int64 `json:"created_at"`
-	}{
-		Alias: (*Alias)(e),
-	}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	e.CreatedAt = time.Unix(aux.CreatedAt, 0)
-	return nil
-}
+// MarshalJSON and UnmarshalJSON are no longer needed since nostr.Timestamp handles JSON serialization
 
 // Error definitions
 var (

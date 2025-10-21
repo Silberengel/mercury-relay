@@ -233,7 +233,7 @@ func (r *RESTAPIServer) handleQuery(w http.ResponseWriter, req *http.Request) {
 func (r *RESTAPIServer) handlePublish(w http.ResponseWriter, req *http.Request) {
 	var publishReq PublishRequest
 	if err := json.NewDecoder(req.Body).Decode(&publishReq); err != nil {
-		r.sendError(w, "Invalid JSON", http.StatusBadRequest)
+		r.sendError(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -556,7 +556,7 @@ func (r *RESTAPIServer) handleEbooks(w http.ResponseWriter, req *http.Request) {
 			"author_name": metadata["author"],
 			"format":      metadata["format"],
 			"size":        metadata["size"],
-			"created_at":  event.CreatedAt.Unix(),
+			"created_at":  int64(event.CreatedAt),
 			"tags":        event.Tags,
 		}
 
@@ -706,7 +706,7 @@ func (r *RESTAPIServer) handleEbookContent(w http.ResponseWriter, req *http.Requ
 			"description": bookMetadata["description"],
 			"format":      bookMetadata["format"],
 			"language":    bookMetadata["language"],
-			"created_at":  bookEvent.CreatedAt.Unix(),
+			"created_at":  int64(bookEvent.CreatedAt),
 			"structure":   bookStructure,
 		},
 		"content_format": format,
@@ -770,7 +770,7 @@ func (r *RESTAPIServer) buildBookStructure(bookEvent *models.Event, contentEvent
 			"type":       content["type"], // chapter, section, subsection, etc.
 			"content":    content["content"],
 			"format":     content["format"], // asciidoc, markdown, etc.
-			"created_at": event.CreatedAt.Unix(),
+			"created_at": int64(event.CreatedAt),
 			"children":   []map[string]interface{}{},
 		}
 
@@ -936,7 +936,7 @@ func (r *RESTAPIServer) generateEPUB(bookEvent *models.Event, contentEvents []*m
 		Language:    getString(metadata, "language", "en"),
 		Description: getString(metadata, "description", ""),
 		Publisher:   "Mercury Relay",
-		Date:        bookEvent.CreatedAt.Format("2006-01-02"),
+		Date:        bookEvent.CreatedAt.Time().Format("2006-01-02"),
 		Identifier:  bookEvent.ID,
 		Content:     []EPUBChapter{},
 		Images:      []EPUBImage{},
