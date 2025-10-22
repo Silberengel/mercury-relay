@@ -31,6 +31,15 @@ func TestFullEventLifecycle(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
 		eg := models.NewEventGenerator()
 
+		// Create mock relay server for follow list
+		mockRelay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Return empty follow list for testing
+			response := []interface{}{}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+		}))
+		defer mockRelay.Close()
+
 		// Create configuration
 		cfg := config.Config{
 			Server: config.ServerConfig{
@@ -41,8 +50,8 @@ func TestFullEventLifecycle(t *testing.T) {
 			},
 			Access: config.AccessConfig{
 				OwnerNpub:        eg.GetOwnerNpub(),
-				UpdateInterval:   1 * time.Hour,
-				RelayURL:         "https://relay.damus.io",
+				UpdateInterval:   1 * time.Minute,
+				RelayURL:         mockRelay.URL,
 				AllowPublicRead:  true,
 				AllowPublicWrite: true, // Allow public write for testing
 			},
@@ -147,9 +156,20 @@ func TestFullEventLifecycle(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
 		eg := models.NewEventGenerator()
 
+		// Create mock relay server for follow list
+		mockRelay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Return empty follow list for testing
+			response := []interface{}{}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+		}))
+		defer mockRelay.Close()
+
 		cfg := config.Config{
 			Access: config.AccessConfig{
 				OwnerNpub:        eg.GetOwnerNpub(),
+				UpdateInterval:   1 * time.Minute,
+				RelayURL:         mockRelay.URL,
 				AllowPublicRead:  true,
 				AllowPublicWrite: false, // Restrict write access
 			},
@@ -207,7 +227,7 @@ func TestFullEventLifecycle(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		helpers.AssertNoError(t, err)
 		helpers.AssertBoolEqual(t, false, response.Success)
-		helpers.AssertErrorContains(t, err, "blocked")
+		helpers.AssertStringContains(t, response.Error, "blocked")
 	})
 }
 
@@ -387,6 +407,15 @@ func TestWebSocketIntegration(t *testing.T) {
 		mockQueue := mocks.NewMockQueue()
 		eg := models.NewEventGenerator()
 
+		// Create mock relay server for follow list
+		mockRelay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Return empty follow list for testing
+			response := []interface{}{}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+		}))
+		defer mockRelay.Close()
+
 		cfg := config.Config{
 			Server: config.ServerConfig{
 				Host:         "localhost",
@@ -396,6 +425,8 @@ func TestWebSocketIntegration(t *testing.T) {
 			},
 			Access: config.AccessConfig{
 				OwnerNpub:        eg.GetOwnerNpub(),
+				UpdateInterval:   1 * time.Minute,
+				RelayURL:         mockRelay.URL,
 				AllowPublicRead:  true,
 				AllowPublicWrite: true,
 			},
@@ -465,19 +496,11 @@ func TestWebSocketIntegration(t *testing.T) {
 func createTestRouter(server *api.RESTAPIServer) *mux.Router {
 	router := mux.NewRouter()
 
-	// Add routes - we'll need to make the handlers public or use a different approach
-	// For now, let's use a simple approach that doesn't require method access
-	router.HandleFunc("/api/v1/publish", func(w http.ResponseWriter, r *http.Request) {
-		// Create a mock handler for testing
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
-	}).Methods("POST")
-
-	router.HandleFunc("/api/v1/events", func(w http.ResponseWriter, r *http.Request) {
-		// Create a mock handler for testing
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true, "data": []}`))
-	}).Methods("GET", "POST")
+	// Use the actual REST API handlers
+	router.HandleFunc("/api/v1/publish", server.HandlePublish).Methods("POST")
+	router.HandleFunc("/api/v1/events", server.HandleGetEvents).Methods("GET", "POST")
+	router.HandleFunc("/api/v1/health", server.HandleHealth).Methods("GET")
+	router.HandleFunc("/api/v1/stats", server.HandleStats).Methods("GET")
 
 	return router
 }

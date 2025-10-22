@@ -250,8 +250,14 @@ func TestRedisCacheHelperMethods(t *testing.T) {
 		mockCache := mocks.NewMockCache()
 		eg := models.NewEventGenerator()
 
-		npub1 := eg.GetRandomNpub()
-		npub2 := eg.GetRandomNpub()
+		// Get all available npubs to ensure we have different ones
+		var npubs []string
+		for npub := range eg.PrivateKeys {
+			npubs = append(npubs, npub)
+		}
+		
+		npub1 := npubs[0]
+		npub2 := npubs[1]
 
 		// Create events from different authors
 		event1 := eg.GenerateTextNote(npub1, "Message 1", nostr.Tags{})

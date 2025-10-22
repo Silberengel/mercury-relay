@@ -85,16 +85,16 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 
 	// API routes
 	api := router.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/events", r.handleGetEvents).Methods("GET", "POST")
-	api.HandleFunc("/query", r.handleQuery).Methods("POST")
-	api.HandleFunc("/publish", r.handlePublish).Methods("POST")
-	api.HandleFunc("/stream", r.handleStream).Methods("GET")                    // HTTP streaming
-	api.HandleFunc("/sse", r.handleSSE).Methods("GET")                          // Server-Sent Events
-	api.HandleFunc("/ebooks", r.handleEbooks).Methods("GET")                    // E-book specific endpoint
-	api.HandleFunc("/ebooks/{id}/content", r.handleEbookContent).Methods("GET") // E-book content with nested structure
-	api.HandleFunc("/ebooks/{id}/epub", r.handleEbookEPUB).Methods("GET")       // Generate EPUB from Nostr book
-	api.HandleFunc("/health", r.handleHealth).Methods("GET")
-	api.HandleFunc("/stats", r.handleStats).Methods("GET")
+	api.HandleFunc("/events", r.HandleGetEvents).Methods("GET", "POST")
+	api.HandleFunc("/query", r.HandleQuery).Methods("POST")
+	api.HandleFunc("/publish", r.HandlePublish).Methods("POST")
+	api.HandleFunc("/stream", r.HandleStream).Methods("GET")                    // HTTP streaming
+	api.HandleFunc("/sse", r.HandleSSE).Methods("GET")                          // Server-Sent Events
+	api.HandleFunc("/ebooks", r.HandleEbooks).Methods("GET")                    // E-book specific endpoint
+	api.HandleFunc("/ebooks/{id}/content", r.HandleEbookContent).Methods("GET") // E-book content with nested structure
+	api.HandleFunc("/ebooks/{id}/epub", r.HandleEbookEPUB).Methods("GET")       // Generate EPUB from Nostr book
+	api.HandleFunc("/health", r.HandleHealth).Methods("GET")
+	api.HandleFunc("/stats", r.HandleStats).Methods("GET")
 
 	// Start server
 	r.server = &http.Server{
@@ -144,7 +144,7 @@ func (r *RESTAPIServer) rateLimitMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (r *RESTAPIServer) handleGetEvents(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleGetEvents(w http.ResponseWriter, req *http.Request) {
 	var filter nostr.Filter
 
 	if req.Method == "GET" {
@@ -206,7 +206,7 @@ func (r *RESTAPIServer) handleGetEvents(w http.ResponseWriter, req *http.Request
 	r.sendSuccess(w, nostrEvents)
 }
 
-func (r *RESTAPIServer) handleQuery(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleQuery(w http.ResponseWriter, req *http.Request) {
 	var eventReq EventRequest
 	if err := json.NewDecoder(req.Body).Decode(&eventReq); err != nil {
 		r.sendError(w, "Invalid JSON", http.StatusBadRequest)
@@ -230,7 +230,7 @@ func (r *RESTAPIServer) handleQuery(w http.ResponseWriter, req *http.Request) {
 	r.sendSuccess(w, nostrEvents)
 }
 
-func (r *RESTAPIServer) handlePublish(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandlePublish(w http.ResponseWriter, req *http.Request) {
 	var publishReq PublishRequest
 	if err := json.NewDecoder(req.Body).Decode(&publishReq); err != nil {
 		r.sendError(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
@@ -243,18 +243,21 @@ func (r *RESTAPIServer) handlePublish(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	// Check quality control
+	// Check quality control (this will also publish to queue)
 	if r.qualityControl != nil {
+		log.Printf("REST API calling quality controller for event %s", publishReq.Event.ID)
 		if err := r.qualityControl.ValidateEvent(&publishReq.Event); err != nil {
 			r.sendError(w, fmt.Sprintf("Quality control failed: %v", err), http.StatusBadRequest)
 			return
 		}
-	}
-
-	// Publish to queue
-	if err := r.rabbitMQ.PublishEvent(&publishReq.Event); err != nil {
-		r.sendError(w, fmt.Sprintf("Failed to publish event: %v", err), http.StatusInternalServerError)
-		return
+		log.Printf("REST API quality controller completed for event %s", publishReq.Event.ID)
+	} else {
+		log.Printf("REST API no quality controller, publishing directly to queue for event %s", publishReq.Event.ID)
+		// Fallback: publish directly to queue if no quality control
+		if err := r.rabbitMQ.PublishEvent(&publishReq.Event); err != nil {
+			r.sendError(w, fmt.Sprintf("Failed to publish event: %v", err), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	r.sendSuccess(w, map[string]interface{}{
@@ -263,7 +266,7 @@ func (r *RESTAPIServer) handlePublish(w http.ResponseWriter, req *http.Request) 
 	})
 }
 
-func (r *RESTAPIServer) handleHealth(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleHealth(w http.ResponseWriter, req *http.Request) {
 	health := HealthResponse{
 		Status:    "healthy",
 		Timestamp: time.Now(),
@@ -273,7 +276,7 @@ func (r *RESTAPIServer) handleHealth(w http.ResponseWriter, req *http.Request) {
 	r.sendSuccess(w, health)
 }
 
-func (r *RESTAPIServer) handleStats(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleStats(w http.ResponseWriter, req *http.Request) {
 	// Get basic stats
 	stats := StatsResponse{
 		TotalEvents:       0, // TODO: Implement actual stats
@@ -306,7 +309,7 @@ func (r *RESTAPIServer) sendSuccess(w http.ResponseWriter, data interface{}) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (r *RESTAPIServer) handleStream(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleStream(w http.ResponseWriter, req *http.Request) {
 	// HTTP streaming endpoint for server-side rendering
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -368,7 +371,7 @@ func (r *RESTAPIServer) handleStream(w http.ResponseWriter, req *http.Request) {
 	// as they arrive from the queue or upstream relays
 }
 
-func (r *RESTAPIServer) handleSSE(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleSSE(w http.ResponseWriter, req *http.Request) {
 	// Server-Sent Events endpoint for monitoring and admin purposes
 	// Note: For Nostr event streaming, use WebSocket connections instead
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -492,7 +495,7 @@ func (r *RESTAPIServer) handleSSEAdmin(w http.ResponseWriter, req *http.Request)
 	}
 }
 
-func (r *RESTAPIServer) handleEbooks(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleEbooks(w http.ResponseWriter, req *http.Request) {
 	// E-book specific endpoint optimized for e-paper readers
 	// Supports kind 30040 (NKBIP-01) and related ebook events
 
@@ -589,7 +592,7 @@ func (r *RESTAPIServer) handleEbooks(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (r *RESTAPIServer) handleEbookContent(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleEbookContent(w http.ResponseWriter, req *http.Request) {
 	// Special function for transmitting e-paper books with nested structure
 	// Supports kind 30040 (Publication Index) with kind 30041 (Publication Content) per NKBIP-01
 
@@ -821,7 +824,7 @@ func (r *RESTAPIServer) sortContentEvents(events []*models.Event) []*models.Even
 	return events
 }
 
-func (r *RESTAPIServer) handleEbookEPUB(w http.ResponseWriter, req *http.Request) {
+func (r *RESTAPIServer) HandleEbookEPUB(w http.ResponseWriter, req *http.Request) {
 	// Generate EPUB from any Nostr kind 30040 book
 	// This creates a proper EPUB file that can be read on any e-reader
 

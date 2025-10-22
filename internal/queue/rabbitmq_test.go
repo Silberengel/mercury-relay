@@ -191,7 +191,9 @@ func TestRabbitMQHelperMethods(t *testing.T) {
 
 		// Peek at empty queue
 		peekedEvent := mockQueue.Peek()
-		helpers.AssertNil(t, peekedEvent)
+		if peekedEvent != nil {
+			t.Fatalf("Expected nil, got %v", peekedEvent)
+		}
 	})
 
 	t.Run("Clear queue", func(t *testing.T) {

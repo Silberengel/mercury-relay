@@ -198,7 +198,10 @@ func (eg *EventGenerator) GenerateHighQualityEvent(npub string) *Event {
 
 // generateEventID creates a deterministic event ID for testing
 func (eg *EventGenerator) generateEventID(npub, content string) string {
-	data := fmt.Sprintf("%s%s%d", npub, content, time.Now().Unix())
+	// Use nanosecond timestamp and random bytes for uniqueness
+	randomBytes := make([]byte, 8)
+	rand.Read(randomBytes)
+	data := fmt.Sprintf("%s%s%d%d", npub, content, time.Now().UnixNano(), randomBytes)
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])
 }

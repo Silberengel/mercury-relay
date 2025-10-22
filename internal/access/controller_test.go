@@ -17,7 +17,7 @@ func TestWritePermissionCheck(t *testing.T) {
 	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
-	
+
 	t.Run("Owner write access", func(t *testing.T) {
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
@@ -25,7 +25,7 @@ func TestWritePermissionCheck(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		// Owner should always be able to write
 		canWrite := controller.CanWrite(ownerNpub)
 		helpers.AssertBoolEqual(t, true, canWrite)
@@ -38,13 +38,13 @@ func TestWritePermissionCheck(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		// Manually add follower to allowed list
 		controller.allowedNpubs[followerNpub] = true
-		
+
 		canWrite := controller.CanWrite(followerNpub)
 		helpers.AssertBoolEqual(t, true, canWrite)
-		
+
 		// Non-follower should not be able to write
 		otherNpub := "npub1other"
 		canWrite = controller.CanWrite(otherNpub)
@@ -58,7 +58,7 @@ func TestWritePermissionCheck(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		// Anyone should be able to write when public write is enabled
 		canWrite := controller.CanWrite("npub1anyone")
 		helpers.AssertBoolEqual(t, true, canWrite)
@@ -69,7 +69,7 @@ func TestReadPermissionCheck(t *testing.T) {
 	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
-	
+
 	t.Run("Public read enabled", func(t *testing.T) {
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
@@ -77,7 +77,7 @@ func TestReadPermissionCheck(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		// Anyone should be able to read when public read is enabled
 		canRead := controller.CanRead("npub1anyone")
 		helpers.AssertBoolEqual(t, true, canRead)
@@ -90,16 +90,16 @@ func TestReadPermissionCheck(t *testing.T) {
 			AllowPublicRead:  false,
 		}
 		controller := NewController(cfg)
-		
+
 		// Owner should always be able to read
 		canRead := controller.CanRead(ownerNpub)
 		helpers.AssertBoolEqual(t, true, canRead)
-		
+
 		// Manually add follower to allowed list
 		controller.allowedNpubs[followerNpub] = true
 		canRead = controller.CanRead(followerNpub)
 		helpers.AssertBoolEqual(t, true, canRead)
-		
+
 		// Non-follower should not be able to read
 		otherNpub := "npub1other"
 		canRead = controller.CanRead(otherNpub)
@@ -112,7 +112,7 @@ func TestFollowListLoading(t *testing.T) {
 		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		followerNpub := eg.GetFollowerNpub()
-		
+
 		// Create mock HTTP server
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Simulate Nostr relay response with kind 3 event
@@ -133,12 +133,12 @@ func TestFollowListLoading(t *testing.T) {
 					},
 				},
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -146,10 +146,10 @@ func TestFollowListLoading(t *testing.T) {
 			RelayURL:         server.URL,
 		}
 		controller := NewController(cfg)
-		
+
 		err := controller.loadFollowList()
 		helpers.AssertNoError(t, err)
-		
+
 		// Check that follower was added to allowed list
 		helpers.AssertBoolEqual(t, true, controller.allowedNpubs[followerNpub])
 	})
@@ -157,7 +157,7 @@ func TestFollowListLoading(t *testing.T) {
 	t.Run("Relay unavailable", func(t *testing.T) {
 		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -165,13 +165,13 @@ func TestFollowListLoading(t *testing.T) {
 			RelayURL:         "http://nonexistent-relay.example.com",
 		}
 		controller := NewController(cfg)
-		
+
 		// Set some initial allowed npubs
 		controller.allowedNpubs["npub1existing"] = true
-		
+
 		err := controller.loadFollowList()
 		helpers.AssertError(t, err)
-		
+
 		// Existing allowed list should be retained
 		helpers.AssertBoolEqual(t, true, controller.allowedNpubs["npub1existing"])
 	})
@@ -179,13 +179,13 @@ func TestFollowListLoading(t *testing.T) {
 	t.Run("Invalid JSON response", func(t *testing.T) {
 		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
-		
+
 		// Create mock HTTP server returning invalid JSON
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("invalid json"))
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -193,7 +193,7 @@ func TestFollowListLoading(t *testing.T) {
 			RelayURL:         server.URL,
 		}
 		controller := NewController(cfg)
-		
+
 		err := controller.loadFollowList()
 		helpers.AssertError(t, err)
 	})
@@ -204,7 +204,7 @@ func TestPeriodicUpdate(t *testing.T) {
 		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
 		followerNpub := eg.GetFollowerNpub()
-		
+
 		updateCount := 0
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			updateCount++
@@ -225,12 +225,12 @@ func TestPeriodicUpdate(t *testing.T) {
 					},
 				},
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -239,21 +239,21 @@ func TestPeriodicUpdate(t *testing.T) {
 			UpdateInterval:   100 * time.Millisecond, // Fast updates for testing
 		}
 		controller := NewController(cfg)
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 		defer cancel()
-		
+
 		err := controller.Start(ctx)
 		helpers.AssertNoError(t, err)
-		
+
 		// Wait for at least one update
 		time.Sleep(200 * time.Millisecond)
-		
+
 		// Should have made at least one update call
 		if updateCount == 0 {
 			t.Errorf("Expected at least one update call, got %d", updateCount)
 		}
-		
+
 		// Check that follower was added
 		helpers.AssertBoolEqual(t, true, controller.allowedNpubs[followerNpub])
 	})
@@ -261,7 +261,7 @@ func TestPeriodicUpdate(t *testing.T) {
 	t.Run("Update during context cancellation", func(t *testing.T) {
 		eg := models.NewEventGenerator()
 		ownerNpub := eg.GetOwnerNpub()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -270,18 +270,18 @@ func TestPeriodicUpdate(t *testing.T) {
 			UpdateInterval:   100 * time.Millisecond,
 		}
 		controller := NewController(cfg)
-		
+
 		ctx, cancel := context.WithCancel(context.Background())
-		
+
 		err := controller.Start(ctx)
 		helpers.AssertNoError(t, err)
-		
+
 		// Cancel context immediately
 		cancel()
-		
+
 		// Wait a bit to ensure cleanup
 		time.Sleep(50 * time.Millisecond)
-		
+
 		// Should not panic or hang
 		controller.Stop()
 	})
@@ -291,7 +291,7 @@ func TestAccessControlMethods(t *testing.T) {
 	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
-	
+
 	t.Run("GetAllowedNpubs", func(t *testing.T) {
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
@@ -299,11 +299,11 @@ func TestAccessControlMethods(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		// Add some followers
 		controller.allowedNpubs[followerNpub] = true
 		controller.allowedNpubs["npub1another"] = true
-		
+
 		allowed := controller.GetAllowedNpubs()
 		helpers.AssertIntEqual(t, 2, len(allowed))
 		helpers.AssertContains(t, allowed, followerNpub)
@@ -317,7 +317,7 @@ func TestAccessControlMethods(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		helpers.AssertBoolEqual(t, true, controller.IsOwner(ownerNpub))
 		helpers.AssertBoolEqual(t, false, controller.IsOwner(followerNpub))
 	})
@@ -329,12 +329,12 @@ func TestAccessControlMethods(t *testing.T) {
 			AllowPublicRead:  true,
 		}
 		controller := NewController(cfg)
-		
+
 		// Add some followers
 		controller.allowedNpubs[followerNpub] = true
-		
+
 		stats := controller.GetStats()
-		
+
 		helpers.AssertStringEqual(t, ownerNpub, stats["owner_npub"].(string))
 		helpers.AssertIntEqual(t, 1, stats["allowed_count"].(int))
 		helpers.AssertBoolEqual(t, false, stats["public_write"].(bool))
@@ -345,7 +345,7 @@ func TestAccessControlMethods(t *testing.T) {
 func TestAccessControlEdgeCases(t *testing.T) {
 	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
-	
+
 	t.Run("Empty follow list", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Return empty event list
@@ -354,7 +354,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 			json.NewEncoder(w).Encode(response)
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -362,10 +362,10 @@ func TestAccessControlEdgeCases(t *testing.T) {
 			RelayURL:         server.URL,
 		}
 		controller := NewController(cfg)
-		
+
 		err := controller.loadFollowList()
 		helpers.AssertNoError(t, err)
-		
+
 		// Allowed list should be empty
 		helpers.AssertIntEqual(t, 0, len(controller.allowedNpubs))
 	})
@@ -389,12 +389,12 @@ func TestAccessControlEdgeCases(t *testing.T) {
 					},
 				},
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -402,10 +402,10 @@ func TestAccessControlEdgeCases(t *testing.T) {
 			RelayURL:         server.URL,
 		}
 		controller := NewController(cfg)
-		
+
 		err := controller.loadFollowList()
 		helpers.AssertNoError(t, err)
-		
+
 		// No p tags, so no followers added
 		helpers.AssertIntEqual(t, 0, len(controller.allowedNpubs))
 	})
@@ -415,7 +415,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -423,7 +423,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 			RelayURL:         server.URL,
 		}
 		controller := NewController(cfg)
-		
+
 		err := controller.loadFollowList()
 		helpers.AssertError(t, err)
 	})
@@ -434,12 +434,12 @@ func TestAccessControlIntegration(t *testing.T) {
 	eg := models.NewEventGenerator()
 	ownerNpub := eg.GetOwnerNpub()
 	followerNpub := eg.GetFollowerNpub()
-	
+
 	t.Run("Dynamic follow list updates", func(t *testing.T) {
 		updateCount := 0
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			updateCount++
-			
+
 			// First update: follower is included
 			// Second update: follower is removed
 			tags := []interface{}{}
@@ -448,7 +448,7 @@ func TestAccessControlIntegration(t *testing.T) {
 					[]interface{}{"p", followerNpub, "", "follow"},
 				}
 			}
-			
+
 			response := []interface{}{
 				[]interface{}{
 					"EVENT",
@@ -464,12 +464,12 @@ func TestAccessControlIntegration(t *testing.T) {
 					},
 				},
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		}))
 		defer server.Close()
-		
+
 		cfg := config.AccessConfig{
 			OwnerNpub:        ownerNpub,
 			AllowPublicWrite: false,
@@ -478,23 +478,23 @@ func TestAccessControlIntegration(t *testing.T) {
 			UpdateInterval:   100 * time.Millisecond,
 		}
 		controller := NewController(cfg)
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 		defer cancel()
-		
+
 		err := controller.Start(ctx)
 		helpers.AssertNoError(t, err)
-		
-		// Wait for first update
-		time.Sleep(150 * time.Millisecond)
-		
-		// Follower should be allowed
+
+		// Wait for initial load and first update
+		time.Sleep(50 * time.Millisecond)
+
+		// Follower should be allowed after first update
 		helpers.AssertBoolEqual(t, true, controller.CanWrite(followerNpub))
-		
-		// Wait for second update
-		time.Sleep(150 * time.Millisecond)
-		
-		// Follower should no longer be allowed
+
+		// Wait for second update (100ms interval)
+		time.Sleep(110 * time.Millisecond)
+
+		// Follower should no longer be allowed after second update
 		helpers.AssertBoolEqual(t, false, controller.CanWrite(followerNpub))
 	})
 
@@ -505,7 +505,7 @@ func TestAccessControlIntegration(t *testing.T) {
 			AllowPublicRead:  false,
 		}
 		controller := NewController(cfg)
-		
+
 		// Even with empty follow list and no public access
 		helpers.AssertBoolEqual(t, true, controller.CanWrite(ownerNpub))
 		helpers.AssertBoolEqual(t, true, controller.CanRead(ownerNpub))

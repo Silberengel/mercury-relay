@@ -100,6 +100,12 @@ func (c *Controller) ValidateEvent(event *models.Event) error {
 		event.QuarantineReason = "Low quality score"
 	}
 
+	// Publish event to queue
+	if err := c.rabbitMQ.PublishEvent(event); err != nil {
+		return fmt.Errorf("failed to publish event: %w", err)
+	}
+
+	log.Printf("Quality controller published event %s to queue", event.ID)
 	return nil
 }
 

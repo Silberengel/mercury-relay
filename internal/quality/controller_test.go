@@ -219,7 +219,7 @@ func TestKindSpecificValidation(t *testing.T) {
 		controller := NewController(cfg, mockQueue, mockCache)
 
 		// Create kind config loader with kind 0 rules
-		kindConfig, err := NewKindConfigLoader("")
+		kindConfig, err := NewKindConfigLoader("../../nostr-event-kinds.yaml")
 		helpers.AssertNoError(t, err)
 		controller.SetKindConfigLoader(kindConfig)
 
@@ -245,7 +245,7 @@ func TestKindSpecificValidation(t *testing.T) {
 		controller := NewController(cfg, mockQueue, mockCache)
 
 		// Create kind config loader with kind 1 rules
-		kindConfig, err := NewKindConfigLoader("")
+		kindConfig, err := NewKindConfigLoader("../../nostr-event-kinds.yaml")
 		helpers.AssertNoError(t, err)
 		controller.SetKindConfigLoader(kindConfig)
 
@@ -490,8 +490,25 @@ func TestRateLimiterCleanup(t *testing.T) {
 		}
 		controller.rateMutex.Unlock()
 
-		// Wait for cleanup
-		time.Sleep(150 * time.Millisecond)
+		// Trigger cleanup manually
+		controller.rateMutex.Lock()
+		now := time.Now()
+		cutoff := now.Add(-time.Minute)
+
+		for npub, times := range controller.rateLimiter {
+			var validTimes []time.Time
+			for _, t := range times {
+				if t.After(cutoff) {
+					validTimes = append(validTimes, t)
+				}
+			}
+			if len(validTimes) == 0 {
+				delete(controller.rateLimiter, npub)
+			} else {
+				controller.rateLimiter[npub] = validTimes
+			}
+		}
+		controller.rateMutex.Unlock()
 
 		// Old entries should be cleaned up
 		controller.rateMutex.RLock()

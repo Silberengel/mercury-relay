@@ -45,7 +45,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleGetEvents(w, req)
+		server.HandleGetEvents(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -94,7 +94,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleGetEvents(w, req)
+		server.HandleGetEvents(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -143,7 +143,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleGetEvents(w, req)
+		server.HandleGetEvents(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -184,7 +184,7 @@ func TestRESTAPIPublish(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handlePublish(w, req)
+		server.HandlePublish(w, req)
 
 		// Debug: Print response if not 200
 		if w.Code != http.StatusOK {
@@ -237,7 +237,7 @@ func TestRESTAPIPublish(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handlePublish(w, req)
+		server.HandlePublish(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusBadRequest, w.Code)
@@ -291,7 +291,7 @@ func TestRESTAPIEbooks(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleEbooks(w, req)
+		server.HandleEbooks(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -343,7 +343,7 @@ func TestRESTAPIEbooks(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleEbooks(w, req)
+		server.HandleEbooks(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -378,7 +378,7 @@ func TestRESTAPIHealth(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleHealth(w, req)
+		server.HandleHealth(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -416,7 +416,7 @@ func TestRESTAPIStats(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Execute request
-		server.handleStats(w, req)
+		server.HandleStats(w, req)
 
 		// Verify response
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
@@ -489,7 +489,7 @@ func TestRESTAPIRateLimiting(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			req := httptest.NewRequest("GET", "/api/v1/health", nil)
 			w := httptest.NewRecorder()
-			server.handleHealth(w, req)
+			server.HandleHealth(w, req)
 			helpers.AssertIntEqual(t, http.StatusOK, w.Code)
 		}
 	})
@@ -533,9 +533,9 @@ func (r *RESTAPIServer) createTestRouter() *http.ServeMux {
 
 	// Add CORS middleware
 	if r.config.CORSEnabled {
-		mux.HandleFunc("/api/v1/events", r.corsMiddleware(http.HandlerFunc(r.handleGetEvents)).ServeHTTP)
+		mux.HandleFunc("/api/v1/events", r.corsMiddleware(http.HandlerFunc(r.HandleGetEvents)).ServeHTTP)
 	} else {
-		mux.HandleFunc("/api/v1/events", r.handleGetEvents)
+		mux.HandleFunc("/api/v1/events", r.HandleGetEvents)
 	}
 
 	return mux
@@ -565,7 +565,7 @@ func TestRESTAPIIntegration(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
-		server.handlePublish(w, req)
+		server.HandlePublish(w, req)
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
 
 		// Step 2: Simulate event being processed and stored in cache
@@ -575,7 +575,7 @@ func TestRESTAPIIntegration(t *testing.T) {
 		req = httptest.NewRequest("GET", "/api/v1/events?authors="+event.PubKey, nil)
 		w = httptest.NewRecorder()
 
-		server.handleGetEvents(w, req)
+		server.HandleGetEvents(w, req)
 		helpers.AssertIntEqual(t, http.StatusOK, w.Code)
 
 		var response APIResponse
