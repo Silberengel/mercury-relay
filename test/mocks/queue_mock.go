@@ -253,10 +253,18 @@ func (m *MockQueue) GetAllKindQueueStats() (map[int]int, error) {
 		stats[kind] = 0
 	}
 	stats[-1] = 0 // undefined kinds
+	stats[-2] = 0 // moderation queue
 
 	// Count events
 	for _, event := range m.events {
-		if isCommonKind(event.Kind) {
+		isKnown := false
+		for _, knownKind := range commonKinds {
+			if event.Kind == knownKind {
+				isKnown = true
+				break
+			}
+		}
+		if isKnown {
 			stats[event.Kind]++
 		} else {
 			stats[-1]++ // undefined kinds

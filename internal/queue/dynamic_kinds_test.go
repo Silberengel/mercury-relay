@@ -86,7 +86,15 @@ func TestIsCommonKind(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := isCommonKind(test.kind)
+		// Check if kind is in the common kinds list
+		commonKinds := getCommonKinds()
+		result := false
+		for _, knownKind := range commonKinds {
+			if test.kind == knownKind {
+				result = true
+				break
+			}
+		}
 		if result != test.expected {
 			t.Errorf("isCommonKind(%d) = %v, expected %v", test.kind, result, test.expected)
 		}
@@ -104,14 +112,28 @@ func TestDynamicKindIntegration(t *testing.T) {
 	// Test that we can handle a kind that's in the config
 	if len(kinds) > 0 {
 		testKind := kinds[0]
-		if !isCommonKind(testKind) {
+		isKnown := false
+		for _, knownKind := range kinds {
+			if testKind == knownKind {
+				isKnown = true
+				break
+			}
+		}
+		if !isKnown {
 			t.Errorf("Kind %d should be considered common", testKind)
 		}
 	}
 
 	// Test that undefined kinds are handled correctly
 	undefinedKind := 99999
-	if isCommonKind(undefinedKind) {
+	isKnown := false
+	for _, knownKind := range kinds {
+		if undefinedKind == knownKind {
+			isKnown = true
+			break
+		}
+	}
+	if isKnown {
 		t.Errorf("Kind %d should not be considered common", undefinedKind)
 	}
 }

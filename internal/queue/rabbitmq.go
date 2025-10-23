@@ -69,17 +69,6 @@ func getCommonKinds() []int {
 	return kinds
 }
 
-// isCommonKind checks if a kind is in the configured kinds list
-func isCommonKind(kind int) bool {
-	commonKinds := getCommonKinds()
-	for _, commonKind := range commonKinds {
-		if kind == commonKind {
-			return true
-		}
-	}
-	return false
-}
-
 type RabbitMQ struct {
 	conn         *amqp091.Connection
 	channel      *amqp091.Channel
@@ -181,8 +170,8 @@ func NewRabbitMQ(config config.RabbitMQConfig) (*RabbitMQ, error) {
 	// Get the common Nostr event types that have dedicated topics
 	commonKinds := getCommonKinds()
 
-	// Always create an "undefined" queue for unknown kinds
-	allKinds := append(commonKinds, -1) // -1 represents undefined/unknown kinds
+	// Always create an "undefined" queue for unknown kinds and "moderation" queue for invalid events
+	allKinds := append(commonKinds, -1, -2) // -1 represents undefined/unknown kinds, -2 represents moderation
 
 	for _, kind := range allKinds {
 		var queueName string
@@ -191,6 +180,9 @@ func NewRabbitMQ(config config.RabbitMQConfig) (*RabbitMQ, error) {
 		if kind == -1 {
 			queueName = "nostr_kind_undefined"
 			routingKey = "kind.undefined"
+		} else if kind == -2 {
+			queueName = "nostr_kind_moderation"
+			routingKey = "kind.moderation"
 		} else {
 			queueName = fmt.Sprintf("nostr_kind_%d", kind)
 			routingKey = fmt.Sprintf("kind.%d", kind)
@@ -259,21 +251,38 @@ func (r *RabbitMQ) PublishEvent(event *models.Event) error {
 	return r.PublishToKindTopic(event)
 }
 
-// PublishToKindTopic routes an event to the appropriate kind-based topic
+// PublishToKindTopic routes an event to the appropriate kind-based topic with quality control
 func (r *RabbitMQ) PublishToKindTopic(event *models.Event) error {
 	body, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
-	// Determine routing key based on kind
+	// Determine routing key based on kind and quality control
 	var routingKey string
 
-	if isCommonKind(event.Kind) {
-		routingKey = fmt.Sprintf("kind.%d", event.Kind)
+	// First, check if the event is valid (basic validation)
+	if !r.isValidEvent(event) {
+		// Invalid events go to moderation topic
+		routingKey = "kind.moderation"
 	} else {
-		// For undefined/unknown kinds, route to undefined topic
-		routingKey = "kind.undefined"
+		// Check if this is a known kind from configuration
+		commonKinds := getCommonKinds()
+		isKnown := false
+		for _, knownKind := range commonKinds {
+			if event.Kind == knownKind {
+				isKnown = true
+				break
+			}
+		}
+
+		if isKnown {
+			// Known kinds go to their specific topic
+			routingKey = fmt.Sprintf("kind.%d", event.Kind)
+		} else {
+			// Unknown kinds go to undefined topic
+			routingKey = "kind.undefined"
+		}
 	}
 
 	return r.channel.Publish(
@@ -288,6 +297,36 @@ func (r *RabbitMQ) PublishToKindTopic(event *models.Event) error {
 			MessageId:   event.ID,
 		},
 	)
+}
+
+// isValidEvent performs basic validation on an event
+func (r *RabbitMQ) isValidEvent(event *models.Event) bool {
+	// Basic validation checks
+	if event == nil {
+		return false
+	}
+
+	// Check required fields
+	if event.ID == "" || event.PubKey == "" || event.Sig == "" {
+		return false
+	}
+
+	// Check timestamp is reasonable (not too far in past/future)
+	now := int64(time.Now().Unix())
+	createdAt := int64(event.CreatedAt)
+	if createdAt < now-86400*365 || createdAt > now+86400 { // Within 1 year
+		return false
+	}
+
+	// Check kind is reasonable
+	if event.Kind < 0 || event.Kind > 65535 {
+		return false
+	}
+
+	// Additional validation can be added here
+	// For now, we'll consider events with basic structure as valid
+
+	return true
 }
 
 func (r *RabbitMQ) ConsumeEvents() ([]*models.Event, error) {
@@ -336,8 +375,17 @@ func (r *RabbitMQ) GetQueueStats() (int, error) {
 func (r *RabbitMQ) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
 	var queueName string
 
-	// Handle undefined kinds
-	if isCommonKind(kind) {
+	// Check if this is a known kind from configuration
+	commonKinds := getCommonKinds()
+	isKnown := false
+	for _, knownKind := range commonKinds {
+		if kind == knownKind {
+			isKnown = true
+			break
+		}
+	}
+
+	if isKnown {
 		queueName = fmt.Sprintf("nostr_kind_%d", kind)
 	} else {
 		// For undefined kinds, use the undefined queue
@@ -371,12 +419,29 @@ func (r *RabbitMQ) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
 func (r *RabbitMQ) GetKindQueueStats(kind int) (int, error) {
 	var queueName string
 
-	// Handle undefined kinds
-	if isCommonKind(kind) {
-		queueName = fmt.Sprintf("nostr_kind_%d", kind)
-	} else {
-		// For undefined kinds, use the undefined queue
+	// Handle special cases first
+	if kind == -1 {
 		queueName = "nostr_kind_undefined"
+	} else if kind == -2 {
+		queueName = "nostr_kind_moderation"
+	} else {
+		// Check if this is a known kind from configuration
+		commonKinds := getCommonKinds()
+		isKnown := false
+		for _, knownKind := range commonKinds {
+			if kind == knownKind {
+				isKnown = true
+				break
+			}
+		}
+
+		if isKnown {
+			// Known kinds have dedicated queues
+			queueName = fmt.Sprintf("nostr_kind_%d", kind)
+		} else {
+			// Unknown kinds use the undefined queue
+			queueName = "nostr_kind_undefined"
+		}
 	}
 
 	queue, err := r.channel.QueueInspect(queueName)
@@ -406,6 +471,13 @@ func (r *RabbitMQ) GetAllKindQueueStats() (map[int]int, error) {
 		return nil, fmt.Errorf("failed to get stats for undefined kinds: %w", err)
 	}
 	stats[-1] = undefinedCount
+
+	// Get stats for moderation queue
+	moderationCount, err := r.GetKindQueueStats(-2) // -2 represents moderation
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stats for moderation queue: %w", err)
+	}
+	stats[-2] = moderationCount
 
 	return stats, nil
 }

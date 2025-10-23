@@ -6,7 +6,9 @@ A high-performance, feature-rich Nostr relay built in Go with advanced authentic
 
 - **Multi-Transport Support**: WebSocket, gRPC, Tor, I2P, and SSH tunneling
 - **Advanced Authentication**: Nostr NIP-42 authentication with multi-admin support
+- **Dynamic Kind-Based Filtering**: Automatic routing of events by kind with quality control
 - **Quality Control**: Spam detection, content filtering, and rate limiting
+- **Modular Configuration**: Individual YAML files for each event kind
 - **SSH Key Management**: Secure SSH key storage and management with Nostr authentication
 - **Streaming**: Real-time event streaming with upstream relay support
 - **Admin Interface**: Web-based administration with Nostr authentication
@@ -39,6 +41,70 @@ go build -o mercury-relay ./cmd/mercury-relay
 # Run with default configuration
 ./mercury-relay
 ```
+
+## Kind-Based Event Filtering
+
+Mercury Relay features a dynamic kind-based filtering system that automatically routes events to appropriate topics based on their kind and quality:
+
+### Event Routing Flow
+
+1. **Event Validation**: All events are first validated for basic structure and content
+2. **Invalid Events** → `moderation` topic (for manual review)
+3. **Valid Known Kinds** → `kind.{number}` topic (e.g., `kind.1`, `kind.7`)
+4. **Valid Unknown Kinds** → `undefined` topic
+
+### Supported Event Kinds
+
+The system dynamically loads event kinds from individual YAML configuration files in `configs/kinds/`:
+
+- **Kind 0**: User metadata (`configs/kinds/0.yml`)
+- **Kind 1**: Text notes (`configs/kinds/1.yml`)
+- **Kind 3**: Follow lists (`configs/kinds/3.yml`)
+- **Kind 7**: Reactions (`configs/kinds/7.yml`)
+- **Kind 9**: Chat messages (`configs/kinds/9.yml`)
+- **Kind 30**: Internal citations (`configs/kinds/30.yml`)
+- **Kind 31**: External web citations (`configs/kinds/31.yml`)
+- **Kind 10002**: Relay lists (`configs/kinds/10002.yml`)
+- **Kind 30023**: Long-form content (`configs/kinds/30023.yml`)
+- **Kind 30040**: Publication index (`configs/kinds/30040.yml`)
+- **Kind 30041**: Publication content (`configs/kinds/30041.yml`)
+- **Kind 30042**: Drive events (`configs/kinds/30042.yml`)
+- **Kind 30043**: Traceback events (`configs/kinds/30043.yml`)
+
+### Adding New Event Kinds
+
+To add support for a new event kind:
+
+1. Create a new YAML file: `configs/kinds/{kind_number}.yml`
+2. Define the kind's structure and validation rules
+3. Restart the relay - the new kind will be automatically detected
+
+Example: `configs/kinds/1337.yml` for code snippets:
+
+```yaml
+# Kind 1337: Code Snippet
+name: "Code Snippet"
+description: "Code snippets with syntax highlighting"
+required_tags: ["language"]
+optional_tags: ["title", "description"]
+content_validation:
+  type: "text"
+  max_length: 10000
+  min_length: 1
+quality_rules:
+  - name: "valid_syntax"
+    weight: 0.8
+    description: "Code should have valid syntax"
+replaceable: false
+ephemeral: false
+```
+
+## Documentation
+
+- **[Quick Start Guide](docs/quick-start.md)** - Get up and running in minutes
+- **[Configuration Guide](docs/configuration.md)** - Complete configuration reference
+- **[API Documentation](docs/api.md)** - REST API endpoints and examples
+- **[Kind-Based Filtering](docs/kind-based-filtering.md)** - Dynamic event filtering system
 
 ## Configuration
 
