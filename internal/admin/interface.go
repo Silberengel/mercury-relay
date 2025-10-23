@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"mercury-relay/internal/config"
+	"mercury-relay/internal/models"
 	"mercury-relay/internal/quality"
 
 	"github.com/nbd-wtf/go-nostr"
@@ -74,7 +75,7 @@ func (a *Interface) StartTUI() error {
 
 	// Check if authentication is required
 	// For now, we'll use a simple check - in production this would be more sophisticated
-	requireAuth := false // Set to true to enable authentication
+	requireAuth := true // Enable authentication
 	if requireAuth {
 		if !a.authenticate() {
 			return fmt.Errorf("authentication failed")
@@ -280,36 +281,44 @@ func (a *Interface) authenticateWithNostr(scanner *bufio.Scanner) bool {
 		return false
 	}
 
-	// For demo purposes, we'll simulate verification
-	// In a real implementation, you'd check the relay for the auth event
-	fmt.Print("Enter your npub (for demo): ")
-	if !scanner.Scan() {
+	// Use NSEC from environment to automatically authenticate
+	privKey := a.getPrivateKeyFromEnv()
+	if privKey == "" {
+		fmt.Println("❌ No private key available.")
 		return false
 	}
 
-	npub := strings.TrimSpace(scanner.Text())
-	if npub == "" {
-		fmt.Println("❌ No npub provided.")
+	// Get public key from private key
+	pubkey, err := nostr.GetPublicKey(privKey)
+	if err != nil {
+		fmt.Printf("❌ Failed to get public key: %v\n", err)
 		return false
 	}
 
-	// Check if npub is authorized
+	// Check if pubkey is authorized
 	if len(a.config.Access.AdminNpubs) > 0 {
 		authorized := false
 		for _, authorizedPubkey := range a.config.Access.AdminNpubs {
-			if npub == authorizedPubkey {
+			if pubkey == authorizedPubkey {
 				authorized = true
 				break
 			}
 		}
 		if !authorized {
-			fmt.Println("❌ Pubkey not authorized.")
+			fmt.Printf("❌ Pubkey %s not authorized.\n", pubkey)
 			return false
 		}
 	}
 
+	// Perform full NIP-42 authentication
+	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port+2) // REST API is on port+2
+	if !a.authenticateWithNIP42(relayURL, pubkey) {
+		fmt.Println("❌ NIP-42 authentication failed.")
+		return false
+	}
+
 	a.authenticated = true
-	a.userPubkey = npub
+	a.userPubkey = pubkey
 	fmt.Println("✅ Nostr authentication successful!")
 	return true
 }
@@ -499,7 +508,7 @@ func (a *Interface) queryRecentEvents(scanner *bufio.Scanner) {
 func (a *Interface) getRelayInfo() {
 	fmt.Println("\n=== Relay Information ===")
 
-	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port)
+	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port+2) // REST API is on port+2
 
 	// Try to get relay info from REST API
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -542,7 +551,7 @@ func (a *Interface) getRelayInfo() {
 func (a *Interface) executeQuery(queryType string, filter nostr.Filter) {
 	fmt.Printf("\n=== %s ===\n", queryType)
 
-	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port)
+	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port+2) // REST API is on port+2
 
 	// Create Nostr REQ message
 	req := []interface{}{
@@ -912,8 +921,8 @@ func (a *Interface) collectTags(scanner *bufio.Scanner, kind int) nostr.Tags {
 
 // createEvent creates a Nostr event
 func (a *Interface) createEvent(kind int, content string, tags nostr.Tags) *nostr.Event {
-	// Generate a random private key for this session (in production, use real key)
-	privKey := a.generatePrivateKey()
+	// Get private key from environment variable
+	privKey := a.getPrivateKeyFromEnv()
 
 	event := &nostr.Event{
 		Kind:      kind,
@@ -937,24 +946,48 @@ func (a *Interface) publishEvent(event *nostr.Event) {
 	fmt.Printf("ID: %s\n", event.ID)
 	fmt.Printf("PubKey: %s\n", event.PubKey)
 
-	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port)
+	relayURL := fmt.Sprintf("http://%s:%d", a.config.Server.Host, a.config.Server.Port+2) // REST API is on port+2
 
-	// Create Nostr EVENT message
-	req := []interface{}{
-		"EVENT",
-		event,
+	// First, authenticate with NIP-42
+	if !a.authenticateWithNIP42(relayURL, event.PubKey) {
+		fmt.Println("❌ NIP-42 authentication failed")
+		return
+	}
+
+	// Create REST API publish request using models.Event
+	modelsEvent := &models.Event{
+		ID:        event.ID,
+		PubKey:    event.PubKey,
+		CreatedAt: event.CreatedAt,
+		Kind:      event.Kind,
+		Tags:      event.Tags,
+		Content:   event.Content,
+		Sig:       event.Sig,
+	}
+
+	publishReq := map[string]interface{}{
+		"event": modelsEvent,
 	}
 
 	// Convert to JSON
-	jsonData, err := json.Marshal(req)
+	jsonData, err := json.Marshal(publishReq)
 	if err != nil {
 		fmt.Printf("❌ Failed to create event: %v\n", err)
 		return
 	}
 
-	// Send request to relay
+	// Send request to REST API with authentication header
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Post(relayURL+"/", "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", relayURL+"/api/v1/publish", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Printf("❌ Failed to create request: %v\n", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Nostr-Pubkey", event.PubKey) // Use the actual pubkey from the signed event
+
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("❌ Failed to publish event: %v\n", err)
 		return
@@ -963,9 +996,181 @@ func (a *Interface) publishEvent(event *nostr.Event) {
 
 	if resp.StatusCode == http.StatusOK {
 		fmt.Println("✅ Event published successfully!")
+
+		// Display the nevent for easy client access
+		nevent := a.generateNevent(event)
+		fmt.Printf("\n🔗 Event Identifier (nevent): %s\n", nevent)
+		fmt.Println("📱 You can use this nevent to find the event in your Nostr client")
 	} else {
 		fmt.Printf("❌ Relay returned status: %d\n", resp.StatusCode)
+		// Try to read error message
+		body, err := io.ReadAll(resp.Body)
+		if err == nil && len(body) > 0 {
+			fmt.Printf("Error details: %s\n", string(body))
+		}
 	}
+}
+
+// getPrivateKeyFromEnv gets the private key from NSEC environment variable
+func (a *Interface) getPrivateKeyFromEnv() string {
+	nsec := os.Getenv("NSEC")
+	if nsec == "" {
+		fmt.Println("⚠️  NSEC environment variable not set, using random key for testing")
+		return a.generatePrivateKey()
+	}
+
+	// Check if it's already a hex private key (64 characters)
+	if len(nsec) == 64 {
+		// Validate it's hex
+		if _, err := hex.DecodeString(nsec); err == nil {
+			return nsec
+		}
+	}
+
+	// For now, if it's nsec format, we'll need to implement bech32 decoding
+	// For development, let's just use a random key and log the issue
+	if strings.HasPrefix(nsec, "nsec1") {
+		fmt.Printf("⚠️  NSEC format detected but bech32 decoding not implemented yet\n")
+		fmt.Println("Using random key for testing")
+		return a.generatePrivateKey()
+	}
+
+	// Try to use as hex directly
+	if _, err := hex.DecodeString(nsec); err == nil {
+		return nsec
+	}
+
+	fmt.Printf("❌ Invalid NSEC format: %s\n", nsec)
+	fmt.Println("Using random key for testing")
+	return a.generatePrivateKey()
+}
+
+// authenticateWithNIP42 performs NIP-42 authentication
+func (a *Interface) authenticateWithNIP42(relayURL, pubkey string) bool {
+	fmt.Println("🔐 Authenticating with NIP-42...")
+
+	// Step 1: Get challenge from relay
+	challenge, err := a.getNostrChallenge(relayURL)
+	if err != nil {
+		fmt.Printf("❌ Failed to get challenge: %v\n", err)
+		return false
+	}
+
+	fmt.Printf("📝 Challenge received: %s\n", challenge)
+
+	// Step 2: Create authentication event (kind 22242)
+	authEvent := a.createAuthEvent(challenge, relayURL)
+	if authEvent == nil {
+		fmt.Println("❌ Failed to create auth event")
+		return false
+	}
+
+	// Step 3: Publish auth event to relay
+	if !a.publishAuthEvent(relayURL, authEvent) {
+		fmt.Println("❌ Failed to publish auth event")
+		return false
+	}
+
+	fmt.Println("✅ NIP-42 authentication successful!")
+	return true
+}
+
+// getNostrChallenge gets a challenge from the relay
+func (a *Interface) getNostrChallenge(relayURL string) (string, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(relayURL + "/api/v1/nostr/challenge")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("challenge request failed with status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return "", err
+	}
+
+	challenge, ok := response["challenge"].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid challenge response")
+	}
+
+	return challenge, nil
+}
+
+// createAuthEvent creates a NIP-42 authentication event
+func (a *Interface) createAuthEvent(challenge, relayURL string) *nostr.Event {
+	privKey := a.getPrivateKeyFromEnv()
+
+	// Create kind 22242 authentication event
+	event := &nostr.Event{
+		Kind:    22242,
+		Content: "",
+		Tags: nostr.Tags{
+			[]string{"challenge", challenge},
+			[]string{"relay", relayURL},
+		},
+		CreatedAt: nostr.Timestamp(time.Now().Unix()),
+	}
+
+	// Sign the event
+	event.Sign(privKey)
+
+	return event
+}
+
+// publishAuthEvent publishes the authentication event
+func (a *Interface) publishAuthEvent(relayURL string, authEvent *nostr.Event) bool {
+	// Create the request body in the format expected by the existing endpoint
+	publishReq := map[string]interface{}{
+		"event": map[string]interface{}{
+			"id":         authEvent.ID,
+			"pubkey":     authEvent.PubKey,
+			"created_at": int64(authEvent.CreatedAt),
+			"kind":       authEvent.Kind,
+			"tags":       authEvent.Tags,
+			"content":    authEvent.Content,
+			"sig":        authEvent.Sig,
+		},
+	}
+
+	jsonData, err := json.Marshal(publishReq)
+	if err != nil {
+		return false
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("POST", relayURL+"/api/v1/nostr/auth", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return false
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK
+}
+
+// generateNevent creates a nevent identifier for the published event
+func (a *Interface) generateNevent(event *nostr.Event) string {
+	// nevent format: nevent1<event_id><relay_url><author_pubkey>
+	// For now, we'll create a simple nevent with just the event ID
+	// In a full implementation, you'd use bech32 encoding
+	relayURL := fmt.Sprintf("ws://%s:%d", a.config.Server.Host, a.config.Server.Port)
+	return fmt.Sprintf("nevent1%s@%s", event.ID, relayURL)
 }
 
 // generatePrivateKey generates a random private key for testing

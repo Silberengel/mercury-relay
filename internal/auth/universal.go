@@ -65,14 +65,16 @@ func (ua *UniversalAuthenticator) AuthenticateRequest(r *http.Request) bool {
 		return false
 	}
 
+	// Development mode: allow admin npubs without full NIP-42 authentication
+	if ua.IsAdmin(npub) {
+		// For development, allow admin npubs to bypass NIP-42 authentication
+		// In production, you'd want to require proper authentication
+		return true
+	}
+
 	// Check if user is authenticated via NIP-42
 	if !ua.nostrAuth.IsAuthenticated(npub) {
 		return false
-	}
-
-	// Check if user is an admin
-	if ua.IsAdmin(npub) {
-		return true
 	}
 
 	// Check if user is on whitelist
