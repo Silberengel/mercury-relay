@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercury Relay</title>
+    <link rel="icon" type="image/svg+xml" href="/mercury-icon.svg">
+    <link rel="alternate icon" href="/favicon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/mercury-icon.svg" alt="Mercury Relay" class="icon">
+        <h1>Mercury Relay</h1>
+        <p>A Nostr relay with multiple transport methods</p>
+    </div>
+    
+    <div class="content">
+        <h2>Available Endpoints</h2>
+        
+        <div class="endpoint">
+            <strong>Nostr WebSocket:</strong> ws://localhost:8080
+        </div>
+        
+        <div class="endpoint">
+            <strong>Admin API:</strong> http://localhost:8081
+        </div>
+        
+        <div class="endpoint">
+            <strong>REST API:</strong> http://localhost:8082
+        </div>
+        
+        <div class="endpoint">
+            <strong>gRPC:</strong> localhost:9090
+        </div>
+        
+        <h2>Transport Methods</h2>
+        <ul>
+            <li>WebSocket</li>
+            <li>Tor Hidden Service</li>
+            <li>I2P Tunnel</li>
+            <li>SSH Tunneling</li>
+            <li>HTTP Streaming</li>
+            <li>Server-Sent Events</li>
+            <li>gRPC</li>
+        </ul>
+        
+        <h2>Health Check</h2>
+        <p><a href="/health">Check relay status</a></p>
+    </div>
+</body>
+</html>

@@ -123,6 +123,9 @@ services:
       - ../configs/apache.conf:/usr/local/apache2/conf/extra/mercury-relay.conf:ro
       - ../configs/apache-docker.conf:/usr/local/apache2/conf/httpd.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ../favicon.ico:/usr/local/apache2/htdocs/favicon.ico:ro
+      - ../mercury-icon.svg:/usr/local/apache2/htdocs/mercury-icon.svg:ro
+      - ../mercury-icon.png:/usr/local/apache2/htdocs/mercury-icon.png:ro
     depends_on:
       - mercury-relay
       - tor
