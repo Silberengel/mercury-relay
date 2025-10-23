@@ -1,0 +1,9 @@
+{
+  "id": "test123456789",
+  "pubkey": "test_pubkey",
+  "created_at": 1699123456,
+  "kind": 1,
+  "tags": [],
+  "content": "Hello Mercury Relay!",
+  "sig": "test_signature"
+}

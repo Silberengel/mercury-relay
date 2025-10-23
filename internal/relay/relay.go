@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -187,24 +188,48 @@ func (s *Server) handleWebSocketOverSSH(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log.Printf("=== WebSocket handler called ===")
+	log.Printf("Request from: %s", r.RemoteAddr)
+	log.Printf("Request method: %s", r.Method)
+	log.Printf("Request URL: %s", r.URL.String())
+
+	// Check if this is a WebSocket upgrade request by examining headers manually
+	upgrade := r.Header.Get("Upgrade")
+	connection := r.Header.Get("Connection")
+
+	log.Printf("Upgrade header: %s", upgrade)
+	log.Printf("Connection header: %s", connection)
+
+	// Check if this is a proper WebSocket upgrade request
+	if upgrade != "websocket" || !strings.Contains(strings.ToLower(connection), "upgrade") {
+		// For regular HTTP requests, return a simple response
+		log.Printf("Regular HTTP request, returning info page")
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Mercury Relay - WebSocket endpoint\nUse ws:// or wss:// to connect"))
+		return
+	}
+
+	log.Printf("Attempting WebSocket upgrade...")
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
+	log.Printf("WebSocket upgrade successful! Connection established.")
 	defer conn.Close()
 
 	// Create connection
-	connection := &Connection{
+	wsConnection := &Connection{
 		conn:     conn,
 		subs:     make(map[string]*Subscription),
 		lastPing: time.Now(),
-		pubkey:   "", // TODO: Extract from authentication
+		pubkey:   "", // Will be extracted from first EVENT message
 	}
 
 	// Register connection
 	s.connMutex.Lock()
-	s.connections[conn] = connection
+	s.connections[conn] = wsConnection
 	s.connMutex.Unlock()
 
 	// Cleanup on disconnect
@@ -215,20 +240,24 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// Handle messages
+	log.Printf("Starting message handling loop for connection from %s", r.RemoteAddr)
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("WebSocket error: %v", err)
 			}
+			log.Printf("WebSocket connection closed: %v", err)
 			break
 		}
 
-		if err := s.handleMessage(connection, message); err != nil {
+		log.Printf("Received message from %s: %s", r.RemoteAddr, string(message))
+		if err := s.handleMessage(wsConnection, message); err != nil {
 			log.Printf("Error handling message: %v", err)
 			s.sendError(conn, "error", err.Error())
 		}
 	}
+	log.Printf("Message handling loop ended for connection from %s", r.RemoteAddr)
 }
 
 func (s *Server) handleMessage(conn *Connection, message []byte) error {
@@ -335,6 +364,11 @@ func (s *Server) handleEVENT(conn *Connection, args []interface{}) error {
 	}
 	if pubkey, ok := eventData["pubkey"].(string); ok {
 		event.PubKey = pubkey
+		// Store the pubkey in the connection for future use
+		if conn.pubkey == "" {
+			conn.pubkey = pubkey
+			log.Printf("Authenticated user: %s", pubkey)
+		}
 	}
 	if createdAt, ok := eventData["created_at"].(float64); ok {
 		event.CreatedAt = nostr.Timestamp(createdAt)
@@ -350,7 +384,12 @@ func (s *Server) handleEVENT(conn *Connection, args []interface{}) error {
 	}
 
 	// Check access control
-	if !s.accessControl.CanWrite(event.PubKey) {
+	log.Printf("Checking write access for npub: %s", event.PubKey)
+	canWrite := s.accessControl.CanWrite(event.PubKey)
+	log.Printf("Access control result: %v", canWrite)
+
+	if !canWrite {
+		log.Printf("Write access denied for npub: %s", event.PubKey)
 		s.sendError(conn.conn, "restricted", "Write access denied")
 		return fmt.Errorf("write access denied for npub: %s", event.PubKey)
 	}
