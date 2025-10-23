@@ -38,6 +38,9 @@ type Server struct {
 	// WebSocket upgrader
 	upgrader websocket.Upgrader
 
+	// SSH tunnel for WebSocket over SSH
+	sshTunnel *transport.WebSocketSSHTunnel
+
 	// Active connections
 	connections map[*websocket.Conn]*Connection
 	connMutex   sync.RWMutex
@@ -72,7 +75,7 @@ func NewServer(
 	upstreamMgr *streaming.UpstreamManager,
 	restAPI *api.RESTAPIServer,
 ) *Server {
-	return &Server{
+	server := &Server{
 		config:         cfg,
 		transportMgr:   transportMgr,
 		rabbitMQ:       rabbitMQ,
@@ -90,6 +93,15 @@ func NewServer(
 		connections:   make(map[*websocket.Conn]*Connection),
 		eventHandlers: make(map[string]EventHandler),
 	}
+
+	// Initialize SSH tunnel if SSH transport is available
+	if transportMgr != nil {
+		if sshTransport := transportMgr.GetSSHTransport(); sshTransport != nil {
+			server.sshTunnel = transport.NewWebSocketSSHTunnel(sshTransport)
+		}
+	}
+
+	return server
 }
 
 func (s *Server) Start(ctx context.Context) error {
@@ -126,6 +138,12 @@ func (s *Server) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleWebSocket)
 
+	// Add WebSocket over SSH endpoint if SSH tunnel is available
+	if s.sshTunnel != nil {
+		mux.HandleFunc("/ssh", s.handleWebSocketOverSSH)
+		log.Println("WebSocket over SSH endpoint available at /ssh")
+	}
+
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", s.config.Host, s.config.Port),
 		Handler:      mux,
@@ -149,6 +167,22 @@ func (s *Server) Start(ctx context.Context) error {
 	defer cancel()
 
 	return server.Shutdown(ctx)
+}
+
+func (s *Server) handleWebSocketOverSSH(w http.ResponseWriter, r *http.Request) {
+	if s.sshTunnel == nil {
+		http.Error(w, "SSH tunnel not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	log.Printf("WebSocket over SSH connection attempt from %s", r.RemoteAddr)
+
+	// Handle WebSocket over SSH tunnel
+	if err := s.sshTunnel.HandleWebSocketOverSSH(w, r); err != nil {
+		log.Printf("WebSocket over SSH failed: %v", err)
+		http.Error(w, "SSH tunnel connection failed", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -507,7 +541,7 @@ func (s *Server) sendOK(conn *websocket.Conn, eventID string, ok bool, message s
 func (s *Server) sendError(conn *websocket.Conn, errorType, message string) {
 	msg := []interface{}{
 		"NOTICE",
-		message,
+		fmt.Sprintf("[%s] %s", errorType, message),
 	}
 
 	if err := conn.WriteJSON(msg); err != nil {

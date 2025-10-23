@@ -13,6 +13,7 @@ type Config struct {
 	Server    ServerConfig    `yaml:"server"`
 	Tor       TorConfig       `yaml:"tor"`
 	I2P       I2PConfig       `yaml:"i2p"`
+	SSH       SSHConfig       `yaml:"ssh"`
 	RabbitMQ  RabbitMQConfig  `yaml:"rabbitmq"`
 	Redis     RedisConfig     `yaml:"redis"`
 	XFTP      XFTPConfig      `yaml:"xftp"`
@@ -48,6 +49,41 @@ type I2PConfig struct {
 	SAMHost    string `yaml:"sam_host"`
 	TunnelName string `yaml:"tunnel_name"`
 	TunnelPort int    `yaml:"tunnel_port"`
+}
+
+type SSHConfig struct {
+	Enabled           bool              `yaml:"enabled"`
+	KeyStorage        SSHKeyStorage     `yaml:"key_storage"`
+	Connection        SSHConnection     `yaml:"connection"`
+	TerminalInterface TerminalInterface `yaml:"terminal_interface"`
+}
+
+type SSHKeyStorage struct {
+	KeyDir        string `yaml:"key_dir"`
+	PrivateKeyExt string `yaml:"private_key_ext"`
+	PublicKeyExt  string `yaml:"public_key_ext"`
+	KeySize       int    `yaml:"key_size"`
+	KeyType       string `yaml:"key_type"`
+}
+
+type SSHConnection struct {
+	Host        string        `yaml:"host"`
+	Port        int           `yaml:"port"`
+	Username    string        `yaml:"username"`
+	Timeout     time.Duration `yaml:"timeout"`
+	KeepAlive   time.Duration `yaml:"keep_alive"`
+	MaxRetries  int           `yaml:"max_retries"`
+	RetryDelay  time.Duration `yaml:"retry_delay"`
+	Compression bool          `yaml:"compression"`
+	Banner      string        `yaml:"banner"`
+}
+
+type TerminalInterface struct {
+	Enabled     bool   `yaml:"enabled"`
+	Port        int    `yaml:"port"`
+	Host        string `yaml:"host"`
+	Interactive bool   `yaml:"interactive"`
+	LogLevel    string `yaml:"log_level"`
 }
 
 type RabbitMQConfig struct {
@@ -159,6 +195,7 @@ type TransportMethods struct {
 	WebSocket     bool `yaml:"websocket"`
 	Tor           bool `yaml:"tor"`
 	I2P           bool `yaml:"i2p"`
+	SSH           bool `yaml:"ssh"`
 	HTTPStreaming bool `yaml:"http_streaming"`
 	SSE           bool `yaml:"sse"`
 	GRPC          bool `yaml:"grpc"`
@@ -205,7 +242,7 @@ func setDefaults(config *Config) {
 	}
 
 	// Access defaults
-	if config.Access.AllowPublicRead == false && config.Access.AllowPublicWrite == false {
+	if !config.Access.AllowPublicRead && !config.Access.AllowPublicWrite {
 		config.Access.AllowPublicRead = true
 		config.Access.AllowPublicWrite = false
 	}
@@ -233,6 +270,47 @@ func setDefaults(config *Config) {
 	}
 	if config.RabbitMQ.DLXName == "" {
 		config.RabbitMQ.DLXName = "events_dlx"
+	}
+
+	// SSH defaults
+	if config.SSH.KeyStorage.KeyDir == "" {
+		config.SSH.KeyStorage.KeyDir = "./ssh-keys"
+	}
+	if config.SSH.KeyStorage.PrivateKeyExt == "" {
+		config.SSH.KeyStorage.PrivateKeyExt = ".pem"
+	}
+	if config.SSH.KeyStorage.PublicKeyExt == "" {
+		config.SSH.KeyStorage.PublicKeyExt = ".pub"
+	}
+	if config.SSH.KeyStorage.KeySize == 0 {
+		config.SSH.KeyStorage.KeySize = 2048
+	}
+	if config.SSH.KeyStorage.KeyType == "" {
+		config.SSH.KeyStorage.KeyType = "rsa"
+	}
+	if config.SSH.Connection.Port == 0 {
+		config.SSH.Connection.Port = 22
+	}
+	if config.SSH.Connection.Timeout == 0 {
+		config.SSH.Connection.Timeout = 30 * time.Second
+	}
+	if config.SSH.Connection.KeepAlive == 0 {
+		config.SSH.Connection.KeepAlive = 30 * time.Second
+	}
+	if config.SSH.Connection.MaxRetries == 0 {
+		config.SSH.Connection.MaxRetries = 3
+	}
+	if config.SSH.Connection.RetryDelay == 0 {
+		config.SSH.Connection.RetryDelay = 5 * time.Second
+	}
+	if config.SSH.TerminalInterface.Port == 0 {
+		config.SSH.TerminalInterface.Port = 2222
+	}
+	if config.SSH.TerminalInterface.Host == "" {
+		config.SSH.TerminalInterface.Host = "localhost"
+	}
+	if config.SSH.TerminalInterface.LogLevel == "" {
+		config.SSH.TerminalInterface.LogLevel = "info"
 	}
 }
 
@@ -319,6 +397,46 @@ func applyEnvOverrides(config *Config) {
 	if port := os.Getenv("I2P_SAM_PORT"); port != "" {
 		if p, err := strconv.Atoi(port); err == nil {
 			config.I2P.SAMPort = p
+		}
+	}
+
+	// SSH config
+	if ssh := os.Getenv("SSH_ENABLED"); ssh != "" {
+		config.SSH.Enabled = ssh == "true"
+	}
+	if host := os.Getenv("SSH_HOST"); host != "" {
+		config.SSH.Connection.Host = host
+	}
+	if port := os.Getenv("SSH_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.SSH.Connection.Port = p
+		}
+	}
+	if username := os.Getenv("SSH_USERNAME"); username != "" {
+		config.SSH.Connection.Username = username
+	}
+	if keyDir := os.Getenv("SSH_KEY_DIR"); keyDir != "" {
+		config.SSH.KeyStorage.KeyDir = keyDir
+	}
+	if keyType := os.Getenv("SSH_KEY_TYPE"); keyType != "" {
+		config.SSH.KeyStorage.KeyType = keyType
+	}
+	if keySize := os.Getenv("SSH_KEY_SIZE"); keySize != "" {
+		if size, err := strconv.Atoi(keySize); err == nil {
+			config.SSH.KeyStorage.KeySize = size
+		}
+	}
+	if timeout := os.Getenv("SSH_TIMEOUT"); timeout != "" {
+		if d, err := time.ParseDuration(timeout); err == nil {
+			config.SSH.Connection.Timeout = d
+		}
+	}
+	if terminal := os.Getenv("SSH_TERMINAL_ENABLED"); terminal != "" {
+		config.SSH.TerminalInterface.Enabled = terminal == "true"
+	}
+	if terminalPort := os.Getenv("SSH_TERMINAL_PORT"); terminalPort != "" {
+		if p, err := strconv.Atoi(terminalPort); err == nil {
+			config.SSH.TerminalInterface.Port = p
 		}
 	}
 

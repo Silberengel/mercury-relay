@@ -11,14 +11,17 @@ import (
 type Manager struct {
 	torConfig config.TorConfig
 	i2pConfig config.I2PConfig
+	sshConfig config.SSHConfig
 	tor       *TorTransport
 	i2p       *I2PTransport
+	ssh       *SSHTransport
 }
 
-func NewManager(torConfig config.TorConfig, i2pConfig config.I2PConfig) *Manager {
+func NewManager(torConfig config.TorConfig, i2pConfig config.I2PConfig, sshConfig config.SSHConfig) *Manager {
 	return &Manager{
 		torConfig: torConfig,
 		i2pConfig: i2pConfig,
+		sshConfig: sshConfig,
 	}
 }
 
@@ -47,8 +50,19 @@ func (m *Manager) Start(ctx context.Context) error {
 		}
 	}
 
-	// Return error if both transports failed
-	if len(errors) > 0 && m.tor == nil && m.i2p == nil {
+	// Start SSH if enabled
+	if m.sshConfig.Enabled {
+		m.ssh = NewSSHTransport(m.sshConfig)
+		if err := m.ssh.Start(ctx); err != nil {
+			log.Printf("Failed to start SSH transport: %v", err)
+			errors = append(errors, err)
+		} else {
+			log.Println("SSH transport started successfully")
+		}
+	}
+
+	// Return error if all transports failed
+	if len(errors) > 0 && m.tor == nil && m.i2p == nil && m.ssh == nil {
 		return fmt.Errorf("all transports failed to start: %v", errors)
 	}
 
@@ -66,6 +80,12 @@ func (m *Manager) Stop() error {
 
 	if m.i2p != nil {
 		if err := m.i2p.Stop(); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if m.ssh != nil {
+		if err := m.ssh.Stop(); err != nil {
 			errors = append(errors, err)
 		}
 	}
@@ -103,4 +123,22 @@ func (m *Manager) IsI2PHealthy() bool {
 		return m.i2p.IsHealthy()
 	}
 	return false
+}
+
+func (m *Manager) GetSSHAddress() string {
+	if m.ssh != nil {
+		return m.ssh.GetAddress()
+	}
+	return ""
+}
+
+func (m *Manager) IsSSHHealthy() bool {
+	if m.ssh != nil {
+		return m.ssh.IsHealthy()
+	}
+	return false
+}
+
+func (m *Manager) GetSSHTransport() *SSHTransport {
+	return m.ssh
 }

@@ -24,6 +24,32 @@ i2p:
   tunnel_name: "mercury_relay"
   tunnel_port: 8080
 
+# SSH Configuration
+ssh:
+  enabled: ${SSH_ENABLED:-false}
+  key_storage:
+    key_dir: "${SSH_KEY_DIR:-./ssh-keys}"
+    private_key_ext: ".pem"
+    public_key_ext: ".pub"
+    key_size: ${SSH_KEY_SIZE:-2048}
+    key_type: "${SSH_KEY_TYPE:-rsa}"
+  connection:
+    host: "${SSH_HOST:-localhost}"
+    port: ${SSH_PORT:-22}
+    username: "${SSH_USERNAME:-mercury}"
+    timeout: "${SSH_TIMEOUT:-30s}"
+    keep_alive: "${SSH_KEEP_ALIVE:-30s}"
+    max_retries: ${SSH_MAX_RETRIES:-3}
+    retry_delay: "${SSH_RETRY_DELAY:-5s}"
+    compression: ${SSH_COMPRESSION:-false}
+    banner: "Mercury Relay SSH Server"
+  terminal_interface:
+    enabled: ${SSH_TERMINAL_ENABLED:-true}
+    port: ${SSH_TERMINAL_PORT:-2222}
+    host: "${SSH_TERMINAL_HOST:-localhost}"
+    interactive: ${SSH_TERMINAL_INTERACTIVE:-true}
+    log_level: "${SSH_TERMINAL_LOG_LEVEL:-info}"
+
 # RabbitMQ Configuration
 rabbitmq:
   url: "amqp://guest:guest@rabbitmq:5672/"
@@ -121,6 +147,7 @@ streaming:
     websocket: true
     tor: true
     i2p: true
+    ssh: true  # SSH tunneling for secure connections
     http_streaming: true  # HTTP streaming for server-side rendering
     sse: true  # Server-Sent Events for real-time updates
     grpc: true  # gRPC for high-performance communication
