@@ -1,10 +1,36 @@
 package mocks
 
 import (
+	"errors"
 	"sync"
 
 	"mercury-relay/internal/models"
 )
+
+// Error constants for testing
+var (
+	ErrPublishFailed = errors.New("publish failed")
+	ErrConsumeFailed = errors.New("consume failed")
+	ErrStatsFailed   = errors.New("stats failed")
+)
+
+// getCommonKinds returns the list of Nostr event kinds from quality control configuration
+func getCommonKinds() []int {
+	// For testing, use a reasonable set of common kinds
+	// In production, this would load from the actual config file
+	return []int{0, 1, 3, 4, 7, 10000, 10001, 20000, 30000, 30001, 30040, 30041, 1040}
+}
+
+// isCommonKind checks if a kind is in the configured kinds list
+func isCommonKind(kind int) bool {
+	commonKinds := getCommonKinds()
+	for _, commonKind := range commonKinds {
+		if kind == commonKind {
+			return true
+		}
+	}
+	return false
+}
 
 // MockQueue implements the queue interface for testing
 type MockQueue struct {
@@ -177,8 +203,12 @@ func (m *MockQueue) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
 	var kindEvents []*models.Event
 	var remainingEvents []*models.Event
 
+	// Handle undefined kinds
 	for _, event := range m.events {
-		if event.Kind == kind {
+		if isCommonKind(kind) && event.Kind == kind {
+			kindEvents = append(kindEvents, event)
+		} else if !isCommonKind(kind) && !isCommonKind(event.Kind) {
+			// For undefined kinds, collect all non-common kind events
 			kindEvents = append(kindEvents, event)
 		} else {
 			remainingEvents = append(remainingEvents, event)
@@ -198,8 +228,12 @@ func (m *MockQueue) GetKindQueueStats(kind int) (int, error) {
 	defer m.mutex.RUnlock()
 
 	count := 0
+
 	for _, event := range m.events {
-		if event.Kind == kind {
+		if isCommonKind(kind) && event.Kind == kind {
+			count++
+		} else if !isCommonKind(kind) && !isCommonKind(event.Kind) {
+			// For undefined kinds, count all non-common kind events
 			count++
 		}
 	}
@@ -212,9 +246,23 @@ func (m *MockQueue) GetAllKindQueueStats() (map[int]int, error) {
 	defer m.mutex.RUnlock()
 
 	stats := make(map[int]int)
-	for _, event := range m.events {
-		stats[event.Kind]++
+	commonKinds := getCommonKinds()
+
+	// Initialize stats for common kinds
+	for _, kind := range commonKinds {
+		stats[kind] = 0
 	}
+	stats[-1] = 0 // undefined kinds
+
+	// Count events
+	for _, event := range m.events {
+		if isCommonKind(event.Kind) {
+			stats[event.Kind]++
+		} else {
+			stats[-1]++ // undefined kinds
+		}
+	}
+
 	return stats, nil
 }
 

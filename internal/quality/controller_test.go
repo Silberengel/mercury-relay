@@ -219,7 +219,7 @@ func TestKindSpecificValidation(t *testing.T) {
 		controller := NewController(cfg, mockQueue, mockCache)
 
 		// Create kind config loader with kind 0 rules
-		kindConfig, err := NewKindConfigLoader("../../nostr-event-kinds.yaml")
+		kindConfig, err := NewKindConfigLoader("../../configs/nostr-event-kinds.yaml")
 		helpers.AssertNoError(t, err)
 		controller.SetKindConfigLoader(kindConfig)
 
@@ -245,7 +245,7 @@ func TestKindSpecificValidation(t *testing.T) {
 		controller := NewController(cfg, mockQueue, mockCache)
 
 		// Create kind config loader with kind 1 rules
-		kindConfig, err := NewKindConfigLoader("../../nostr-event-kinds.yaml")
+		kindConfig, err := NewKindConfigLoader("../../configs/nostr-event-kinds.yaml")
 		helpers.AssertNoError(t, err)
 		controller.SetKindConfigLoader(kindConfig)
 

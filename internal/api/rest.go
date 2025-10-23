@@ -1368,6 +1368,7 @@ func (r *RESTAPIServer) HandleAllKindStats(w http.ResponseWriter, req *http.Requ
 		3:     "Contacts/follow list",
 		7:     "Reactions",
 		10002: "Relay lists",
+		-1:    "Undefined/Unknown kinds",
 	}
 
 	response := make(map[string]interface{})

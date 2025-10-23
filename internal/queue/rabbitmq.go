@@ -4,13 +4,82 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"mercury-relay/internal/config"
 	"mercury-relay/internal/models"
 
 	"github.com/rabbitmq/amqp091-go"
+	"gopkg.in/yaml.v3"
 )
+
+// KindConfig represents the structure of the quality control configuration
+type KindConfig struct {
+	EventKinds map[string]interface{} `yaml:"event_kinds"`
+}
+
+// loadKindsFromConfig loads kind configurations from the quality control YAML file
+func loadKindsFromConfig(configPath string) ([]int, error) {
+	// Default to the configs directory if no path provided
+	if configPath == "" {
+		configPath = "configs/nostr-event-kinds.yaml"
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		// Fallback to hardcoded kinds if config file doesn't exist
+		return []int{0, 1, 3, 7, 10002}, nil
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// Fallback to hardcoded kinds if file can't be read
+		return []int{0, 1, 3, 7, 10002}, nil
+	}
+
+	var config KindConfig
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		// Fallback to hardcoded kinds if YAML parsing fails
+		return []int{0, 1, 3, 7, 10002}, nil
+	}
+
+	var kinds []int
+	for kindStr := range config.EventKinds {
+		if kind, err := strconv.Atoi(kindStr); err == nil {
+			kinds = append(kinds, kind)
+		}
+	}
+
+	// If no kinds were loaded, fallback to hardcoded
+	if len(kinds) == 0 {
+		return []int{0, 1, 3, 7, 10002}, nil
+	}
+
+	return kinds, nil
+}
+
+// getCommonKinds returns the list of Nostr event kinds from quality control configuration
+func getCommonKinds() []int {
+	kinds, err := loadKindsFromConfig("")
+	if err != nil {
+		// Fallback to hardcoded kinds
+		return []int{0, 1, 3, 7, 10002}
+	}
+	return kinds
+}
+
+// isCommonKind checks if a kind is in the configured kinds list
+func isCommonKind(kind int) bool {
+	commonKinds := getCommonKinds()
+	for _, commonKind := range commonKinds {
+		if kind == commonKind {
+			return true
+		}
+	}
+	return false
+}
 
 type RabbitMQ struct {
 	conn         *amqp091.Connection
@@ -110,10 +179,23 @@ func NewRabbitMQ(config config.RabbitMQConfig) (*RabbitMQ, error) {
 		return nil, fmt.Errorf("failed to declare kind exchange: %w", err)
 	}
 
-	// Create kind-based queues for common Nostr event types
-	commonKinds := []int{0, 1, 3, 7, 10002}
-	for _, kind := range commonKinds {
-		queueName := fmt.Sprintf("nostr_kind_%d", kind)
+	// Get the common Nostr event types that have dedicated topics
+	commonKinds := getCommonKinds()
+
+	// Always create an "undefined" queue for unknown kinds
+	allKinds := append(commonKinds, -1) // -1 represents undefined/unknown kinds
+
+	for _, kind := range allKinds {
+		var queueName string
+		var routingKey string
+
+		if kind == -1 {
+			queueName = "nostr_kind_undefined"
+			routingKey = "kind.undefined"
+		} else {
+			queueName = fmt.Sprintf("nostr_kind_%d", kind)
+			routingKey = fmt.Sprintf("kind.%d", kind)
+		}
 
 		// Declare kind-specific queue
 		_, err = channel.QueueDeclare(
@@ -131,7 +213,6 @@ func NewRabbitMQ(config config.RabbitMQConfig) (*RabbitMQ, error) {
 		}
 
 		// Bind kind queue to kind exchange
-		routingKey := fmt.Sprintf("kind.%d", kind)
 		if err := channel.QueueBind(
 			queueName,
 			routingKey,
@@ -186,8 +267,16 @@ func (r *RabbitMQ) PublishToKindTopic(event *models.Event) error {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
-	// Route to kind-based exchange
-	routingKey := fmt.Sprintf("kind.%d", event.Kind)
+	// Determine routing key based on kind
+	var routingKey string
+
+	if isCommonKind(event.Kind) {
+		routingKey = fmt.Sprintf("kind.%d", event.Kind)
+	} else {
+		// For undefined/unknown kinds, route to undefined topic
+		routingKey = "kind.undefined"
+	}
+
 	return r.channel.Publish(
 		r.kindExchange,
 		routingKey,
@@ -246,7 +335,15 @@ func (r *RabbitMQ) GetQueueStats() (int, error) {
 
 // ConsumeEventsByKind consumes events from a specific kind queue
 func (r *RabbitMQ) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
-	queueName := fmt.Sprintf("nostr_kind_%d", kind)
+	var queueName string
+
+	// Handle undefined kinds
+	if isCommonKind(kind) {
+		queueName = fmt.Sprintf("nostr_kind_%d", kind)
+	} else {
+		// For undefined kinds, use the undefined queue
+		queueName = "nostr_kind_undefined"
+	}
 
 	// Use Get method to get messages one at a time
 	msg, ok, err := r.channel.Get(queueName, false) // false = no auto-ack
@@ -273,7 +370,16 @@ func (r *RabbitMQ) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
 
 // GetKindQueueStats returns the number of messages in a specific kind queue
 func (r *RabbitMQ) GetKindQueueStats(kind int) (int, error) {
-	queueName := fmt.Sprintf("nostr_kind_%d", kind)
+	var queueName string
+
+	// Handle undefined kinds
+	if isCommonKind(kind) {
+		queueName = fmt.Sprintf("nostr_kind_%d", kind)
+	} else {
+		// For undefined kinds, use the undefined queue
+		queueName = "nostr_kind_undefined"
+	}
+
 	queue, err := r.channel.QueueInspect(queueName)
 	if err != nil {
 		return 0, fmt.Errorf("failed to inspect kind queue %s: %w", queueName, err)
@@ -284,8 +390,9 @@ func (r *RabbitMQ) GetKindQueueStats(kind int) (int, error) {
 // GetAllKindQueueStats returns stats for all kind queues
 func (r *RabbitMQ) GetAllKindQueueStats() (map[int]int, error) {
 	stats := make(map[int]int)
-	commonKinds := []int{0, 1, 3, 7, 10002}
+	commonKinds := getCommonKinds()
 
+	// Get stats for common kinds
 	for _, kind := range commonKinds {
 		count, err := r.GetKindQueueStats(kind)
 		if err != nil {
@@ -293,6 +400,13 @@ func (r *RabbitMQ) GetAllKindQueueStats() (map[int]int, error) {
 		}
 		stats[kind] = count
 	}
+
+	// Get stats for undefined kinds
+	undefinedCount, err := r.GetKindQueueStats(-1) // -1 represents undefined
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stats for undefined kinds: %w", err)
+	}
+	stats[-1] = undefinedCount
 
 	return stats, nil
 }
