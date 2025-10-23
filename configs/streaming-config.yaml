@@ -1,0 +1,90 @@
+# Mercury Relay Streaming Configuration
+# Default upstream relays for streaming
+
+streaming:
+  enabled: true
+  
+  # Primary upstream relays (enabled by default)
+  upstream_relays:
+    - url: "wss://theforest.nostr1.com"
+      enabled: true
+      priority: 1
+      description: "The Forest - High performance relay"
+      features: ["websocket", "http_streaming", "sse"]
+      
+    - url: "wss://orlay-relay.imwald.eu"
+      enabled: true
+      priority: 2
+      description: "Orlay Relay - European relay"
+      features: ["websocket", "http_streaming"]
+      
+    - url: "wss://nostr.land"
+      enabled: true
+      priority: 3
+      description: "Nostr Land - Community relay"
+      features: ["websocket", "sse"]
+      
+    - url: "wss://nostr21.com"
+      enabled: true
+      priority: 4
+      description: "Nostr21 - Alternative relay"
+      features: ["websocket", "http_streaming"]
+  
+  # Backup relays (disabled by default)
+  backup_relays:
+    - url: "wss://relay.damus.io"
+      enabled: false
+      priority: 5
+      description: "Damus relay - Backup"
+      
+    - url: "wss://nostr.wine"
+      enabled: false
+      priority: 6
+      description: "Nostr Wine - Backup"
+      
+    - url: "wss://nos.lol"
+      enabled: false
+      priority: 7
+      description: "Nos.lol - Backup"
+      
+    - url: "wss://relay.snort.social"
+      enabled: false
+      priority: 8
+      description: "Snort Social - Backup"
+
+  # Transport methods
+  transport_methods:
+    websocket: true
+    http_streaming: true
+    sse: true
+    tor: true
+    i2p: true
+    grpc: true
+
+  # Connection settings
+  connection_pool_size: 10
+  reconnect_interval: "30s"
+  timeout: "60s"
+  
+  # Retry settings
+  max_retries: 3
+  retry_delay: "10s"
+  
+  # Load balancing
+  load_balancing:
+    strategy: "round_robin"  # round_robin, least_connections, priority
+    health_check_interval: "60s"
+    failover_enabled: true
+    
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 20
+    
+  # Monitoring
+  monitoring:
+    enabled: true
+    metrics_endpoint: "/metrics"
+    health_check_endpoint: "/health"
+    log_level: "info"

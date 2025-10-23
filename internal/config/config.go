@@ -254,8 +254,13 @@ func setDefaults(config *Config) {
 
 	// Access defaults
 	if len(config.Access.AdminNpubs) == 0 {
-		// Default admin npub (should be changed in production)
-		config.Access.AdminNpubs = []string{"npub1admin_default_change_me"}
+		// Default admin npubs
+		config.Access.AdminNpubs = []string{
+			"npub1flnpz46qtu3jwpsglzacmjrglnssyaxdvcfe5yf0hg3g4qad9xds2g784j", // Primary owner
+			"npub1v30tsz9vw6ylpz63g0a702nj3xa26t3m7p5us8f2y2sd8v6cnsvq465zjx", // Admin 1
+			"npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z", // Admin 2
+			"npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl", // Admin 3
+		}
 	}
 	if !config.Access.AllowPublicRead && !config.Access.AllowPublicWrite {
 		config.Access.AllowPublicRead = true

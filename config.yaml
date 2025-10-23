@@ -99,9 +99,9 @@ quality:
 # Access Control
 access:
   admin_npubs:
-    - "${MERCURY_ADMIN_NPUBS:-npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl}"
+    - "${MERCURY_ADMIN_NPUBS:-npub1flnpz46qtu3jwpsglzacmjrglnssyaxdvcfe5yf0hg3g4qad9xds2g784j,npub1v30tsz9vw6ylpz63g0a702nj3xa26t3m7p5us8f2y2sd8v6cnsvq465zjx,npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z,npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl}"
   update_interval: "${ACCESS_UPDATE_INTERVAL:-1h}"
-  relay_url: "${ACCESS_RELAY_URL:-https://relay.damus.io}"
+  relay_url: "${ACCESS_RELAY_URL:-https://mercury-relay.imwald.eu}"
   allow_public_read: "${ACCESS_PUBLIC_READ:-true}"
   allow_public_write: "${ACCESS_PUBLIC_WRITE:-false}"
 

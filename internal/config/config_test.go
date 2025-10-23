@@ -22,7 +22,7 @@ access:
   admin_npubs:
     - "npub1test"
   update_interval: "1h"
-  relay_url: "https://relay.damus.io"
+  relay_url: "https://mercury-relay.imwald.eu"
   allow_public_read: true
   allow_public_write: false
 
@@ -108,7 +108,7 @@ xftp:
 		helpers.AssertIntEqual(t, 1, len(cfg.Access.AdminNpubs))
 		helpers.AssertStringEqual(t, "npub1test", cfg.Access.AdminNpubs[0])
 		helpers.AssertDurationEqual(t, time.Hour, cfg.Access.UpdateInterval)
-		helpers.AssertStringEqual(t, "https://relay.damus.io", cfg.Access.RelayURL)
+		helpers.AssertStringEqual(t, "https://mercury-relay.imwald.eu", cfg.Access.RelayURL)
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)
 		helpers.AssertBoolEqual(t, false, cfg.Access.AllowPublicWrite)
 
@@ -287,7 +287,7 @@ func TestConfigValidation(t *testing.T) {
 			Access: AccessConfig{
 				AdminNpubs:       []string{"npub1valid"},
 				UpdateInterval:   1 * time.Hour,
-				RelayURL:         "https://relay.damus.io",
+				RelayURL:         "https://mercury-relay.imwald.eu",
 				AllowPublicRead:  true,
 				AllowPublicWrite: false,
 			},

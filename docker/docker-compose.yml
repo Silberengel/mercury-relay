@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  mercury-relay:
+    build: .
+    container_name: mercury-relay
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Nostr WebSocket
+      - "8081:8081"  # Admin API
+      - "8082:8082"  # REST API
+      - "9090:9090"  # gRPC
+    environment:
+      - NOSTR_RELAY_PORT=8080
+      - ADMIN_PORT=8081
+      - REST_API_PORT=8082
+      - LOG_LEVEL=info
+      - STREAMING_ENABLED=true
+      - UPSTREAM_RELAYS=wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com
+      - TOR_ENABLED=false
+      - XFTP_ENABLED=false
+      - MERCURY_ADMIN_NPUBS=npub1flnpz46qtu3jwpsglzacmjrglnssyaxdvcfe5yf0hg3g4qad9xds2g784j,npub1v30tsz9vw6ylpz63g0a702nj3xa26t3m7p5us8f2y2sd8v6cnsvq465zjx,npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z,npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ../config.yaml:/app/config.yaml:ro
+    networks:
+      - mercury-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: mercury-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mercury-network
+    command: redis-server --appendonly yes
+
+  # Optional: PostgreSQL for storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: mercury-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=mercury_relay
+      - POSTGRES_USER=mercury
+      - POSTGRES_PASSWORD=change_this_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mercury-network
+
+  # Optional: Apache reverse proxy
+  apache:
+    image: httpd:2.4-alpine
+    container_name: mercury-apache
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../configs/apache.conf:/usr/local/apache2/conf/extra/mercury-relay.conf:ro
+      - ../configs/apache-docker.conf:/usr/local/apache2/conf/httpd.conf:ro
+      - ./ssl:/etc/ssl:ro
+    depends_on:
+      - mercury-relay
+    networks:
+      - mercury-network
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  mercury-network:
+    driver: bridge
