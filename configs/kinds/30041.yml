@@ -1,0 +1,18 @@
+# Kind 30041: Publication Content
+name: "Publication Content"
+description: "Actual publication content"
+required_tags: ["d"]
+optional_tags: ["a", "e", "p", "title", "summary", "image"]
+content_validation:
+  type: "text"
+  max_length: 100000
+  min_length: 10
+quality_rules:
+  - name: "valid_d_tag"
+    weight: 1.0
+    description: "Must have valid d tag for addressability"
+  - name: "substantial_content"
+    weight: 0.8
+    description: "Content should be substantial"
+replaceable: true
+ephemeral: false

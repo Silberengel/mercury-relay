@@ -1,0 +1,18 @@
+# Kind 9: Chat Message
+name: "Chat Message"
+description: "Chat message for direct communication"
+required_tags: []
+optional_tags: ["e", "p", "q"]
+content_validation:
+  type: "text"
+  max_length: 5000
+  min_length: 1
+quality_rules:
+  - name: "meaningful_content"
+    weight: 0.8
+    description: "Content should be meaningful"
+  - name: "not_spam"
+    weight: 1.0
+    description: "Content should not be spam"
+replaceable: false
+ephemeral: false

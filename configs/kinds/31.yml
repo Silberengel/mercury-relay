@@ -1,0 +1,18 @@
+# Kind 31: External Web Citation Reference
+name: "External Web Citation Reference"
+description: "Citation to external web content"
+required_tags: ["u", "accessed_on", "title", "author"]
+optional_tags: ["published_on", "published_by", "version", "location", "g", "open_timestamp", "summary"]
+content_validation:
+  type: "text"
+  max_length: 10000
+  min_length: 1
+quality_rules:
+  - name: "valid_url"
+    weight: 1.0
+    description: "u tag must contain valid URL"
+  - name: "valid_timestamp"
+    weight: 0.9
+    description: "accessed_on must be valid ISO 8601 timestamp"
+replaceable: true
+ephemeral: false

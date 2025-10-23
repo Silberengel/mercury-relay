@@ -1,0 +1,18 @@
+# Kind 7: Reaction
+name: "Reaction"
+description: "User reaction to events"
+required_tags: ["e"]
+optional_tags: ["p", "a", "k", "emoji"]
+content_validation:
+  type: "text"
+  max_length: 100
+  min_length: 0
+quality_rules:
+  - name: "valid_e_tag"
+    weight: 1.0
+    description: "Must reference a valid event with e tag"
+  - name: "reasonable_reaction"
+    weight: 0.8
+    description: "Reaction content should be reasonable"
+replaceable: false
+ephemeral: false

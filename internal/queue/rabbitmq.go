@@ -6,13 +6,13 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"mercury-relay/internal/config"
 	"mercury-relay/internal/models"
 
 	"github.com/rabbitmq/amqp091-go"
-	"gopkg.in/yaml.v3"
 )
 
 // KindConfig represents the structure of the quality control configuration
@@ -20,35 +20,34 @@ type KindConfig struct {
 	EventKinds map[string]interface{} `yaml:"event_kinds"`
 }
 
-// loadKindsFromConfig loads kind configurations from the quality control YAML file
+// loadKindsFromConfig loads kind configurations from individual YAML files in configs/kinds/
 func loadKindsFromConfig(configPath string) ([]int, error) {
-	// Default to the configs directory if no path provided
+	// Default to the kinds directory if no path provided
 	if configPath == "" {
-		configPath = "configs/nostr-event-kinds.yaml"
+		configPath = "configs/kinds"
 	}
 
-	// Check if file exists
+	// Check if directory exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		// Fallback to hardcoded kinds if config file doesn't exist
+		// Fallback to hardcoded kinds if directory doesn't exist
 		return []int{0, 1, 3, 7, 10002}, nil
 	}
 
-	data, err := os.ReadFile(configPath)
+	// Read all .yml files in the kinds directory
+	files, err := os.ReadDir(configPath)
 	if err != nil {
-		// Fallback to hardcoded kinds if file can't be read
-		return []int{0, 1, 3, 7, 10002}, nil
-	}
-
-	var config KindConfig
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		// Fallback to hardcoded kinds if YAML parsing fails
+		// Fallback to hardcoded kinds if directory can't be read
 		return []int{0, 1, 3, 7, 10002}, nil
 	}
 
 	var kinds []int
-	for kindStr := range config.EventKinds {
-		if kind, err := strconv.Atoi(kindStr); err == nil {
-			kinds = append(kinds, kind)
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".yml") {
+			// Extract kind number from filename (e.g., "0.yml" -> 0)
+			kindStr := strings.TrimSuffix(file.Name(), ".yml")
+			if kind, err := strconv.Atoi(kindStr); err == nil {
+				kinds = append(kinds, kind)
+			}
 		}
 	}
 

@@ -1,0 +1,17 @@
+# Kind 3: Follow List
+name: "Follow List"
+description: "List of followed profiles"
+required_tags: ["p"]
+optional_tags: []
+content_validation:
+  type: "empty"
+  max_length: 0
+quality_rules:
+  - name: "valid_p_tags"
+    weight: 1.0
+    description: "Must contain valid p tags with pubkeys"
+  - name: "empty_content"
+    weight: 0.9
+    description: "Content should be empty"
+replaceable: true
+ephemeral: false

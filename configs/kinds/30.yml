@@ -1,0 +1,18 @@
+# Kind 30: Internal Citation Reference
+name: "Internal Citation Reference"
+description: "Citation to internal Nostr content"
+required_tags: ["c", "published_on", "title", "author"]
+optional_tags: ["accessed_on", "location", "g", "summary"]
+content_validation:
+  type: "text"
+  max_length: 10000
+  min_length: 1
+quality_rules:
+  - name: "valid_c_tag"
+    weight: 1.0
+    description: "Must have valid c tag with kind:pubkey:event_id format"
+  - name: "valid_timestamp"
+    weight: 0.9
+    description: "published_on must be valid ISO 8601 timestamp"
+replaceable: true
+ephemeral: false

@@ -1,0 +1,17 @@
+# Kind 30043: Traceback Event
+name: "Traceback Event"
+description: "Directory traceback for file system"
+required_tags: ["d", "a", "A"]
+optional_tags: []
+content_validation:
+  type: "empty"
+  max_length: 0
+quality_rules:
+  - name: "valid_d_tag"
+    weight: 1.0
+    description: "Must have valid d tag for addressability"
+  - name: "valid_a_tags"
+    weight: 0.9
+    description: "Must have valid a and A tags for linking"
+replaceable: true
+ephemeral: false

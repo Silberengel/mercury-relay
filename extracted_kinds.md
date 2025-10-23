@@ -1,0 +1,170 @@
+# Extracted Event Kinds from NIPs Repository
+
+## Basic Kinds (0-99)
+- 0: User metadata
+- 1: Text note  
+- 3: Follow list
+- 5: Event deletion
+- 7: Reaction
+- 8: Badge award
+- 9: Chat message
+- 11: Relay list metadata
+- 13: Sealed direct message
+- 14: Direct message
+- 15: Direct message
+- 17: Repost
+- 20: Channel creation
+- 21: Channel metadata
+- 22: Channel message
+- 62: Relay list
+- 64: Relay list
+- 65: Relay list
+
+## Replaceable Events (10000-19999)
+- 10000: Mute list
+- 10002: Relay list
+- 10013: Relay list
+- 10019: Relay list
+- 10050: Relay list
+- 10051: Relay list
+- 10063: Blossom server list
+- 10096: File server preference
+- 1040: OpenTimestamps
+- 1059: Gift wrap
+- 1063: File sharing
+- 1068: File sharing
+- 1018: File sharing
+- 1111: Comment
+- 1222: Voice message (root)
+- 1244: Voice message (reply)
+- 1311: Relay list
+- 13194: Relay list
+- 1337: Code snippet
+- 1617: Git repository
+- 1618: Git repository
+- 1619: Git repository
+- 1621: Git repository
+- 1630: Git issue (open)
+- 1631: Git issue (applied/merged/resolved)
+- 1632: Git issue (closed)
+- 1633: Git issue (draft)
+- 17375: Relay list
+- 1984: Relay list
+- 1985: Relay list
+- 2003: Relay list
+- 22242: Relay list
+- 23194: Relay list
+- 24133: Relay list
+- 27235: HTTP authentication
+- 30004: Relay list
+- 30007: Mute sets
+- 30008: Relay list
+- 30009: Relay list
+- 30023: Long-form content
+- 30040: Publication index
+- 30041: Publication content
+- 30166: Relay list
+- 30267: Relay list
+- 30311: Relay list
+- 30312: Relay list
+- 30313: Relay list
+- 30315: Relay list
+- 30402: Classified listing
+- 30403: Classified listing (draft)
+- 30617: Relay list
+- 30618: Relay list
+- 31922: Relay list
+- 31923: Relay list
+- 31924: Relay list
+- 31925: Relay list
+- 31989: Application handler
+- 31990: Application redirect
+- 34550: Relay list
+- 38000: Ecash mint recommendation
+- 38172: Cashu mint
+- 38173: Fedimint
+- 38383: Relay list
+- 39000: Relay list
+- 39001: Relay list
+- 39002: Relay list
+- 39003: Relay list
+- 39701: Web bookmark
+- 4550: Relay list
+- 7000: Relay list
+- 7374: Relay list
+- 7375: Relay list
+- 7376: Relay list
+- 818: Relay list
+- 9021: Relay list
+- 9022: Relay list
+- 9041: Relay list
+- 9321: Relay list
+- 9734: Relay list
+- 9735: Relay list
+- 10312: Relay list
+- 10317: Relay list
+- 13194: Relay list
+- 23194: Relay list
+- 24133: Relay list
+- 27235: HTTP authentication
+- 30004: Relay list
+- 30007: Mute sets
+- 30008: Relay list
+- 30009: Relay list
+- 30023: Long-form content
+- 30040: Publication index
+- 30041: Publication content
+- 30166: Relay list
+- 30267: Relay list
+- 30311: Relay list
+- 30312: Relay list
+- 30313: Relay list
+- 30315: Relay list
+- 30402: Classified listing
+- 30403: Classified listing (draft)
+- 30617: Relay list
+- 30618: Relay list
+- 31922: Relay list
+- 31923: Relay list
+- 31924: Relay list
+- 31925: Relay list
+- 31989: Application handler
+- 31990: Application redirect
+- 34550: Relay list
+- 38000: Ecash mint recommendation
+- 38172: Cashu mint
+- 38173: Fedimint
+- 38383: Relay list
+- 39000: Relay list
+- 39001: Relay list
+- 39002: Relay list
+- 39003: Relay list
+- 39701: Web bookmark
+- 4550: Relay list
+- 7000: Relay list
+- 7374: Relay list
+- 7375: Relay list
+- 7376: Relay list
+- 818: Relay list
+- 9021: Relay list
+- 9022: Relay list
+- 9041: Relay list
+- 9321: Relay list
+- 9734: Relay list
+- 9735: Relay list
+- 10312: Relay list
+- 10317: Relay list
+
+## Ephemeral Events (20000-29999)
+- 20000: Client authentication
+
+## Addressable Events (30000-39999)
+- 30000: Categorized people
+- 30001: Bookmarks
+- 30040: Publications
+- 30041: Publication content
+
+## Group Events (40000+)
+- 443: Group metadata
+- 444: Group welcome
+- 445: Group message

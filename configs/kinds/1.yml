@@ -1,0 +1,21 @@
+# Kind 1: Text Note
+name: "Text Note"
+description: "Regular social media post"
+required_tags: []
+optional_tags: ["e", "p", "a", "t", "d", "r", "g", "alt"]
+content_validation:
+  type: "text"
+  max_length: 10000
+  min_length: 1
+quality_rules:
+  - name: "not_spam"
+    weight: 1.0
+    description: "Content should not be spam"
+  - name: "meaningful_content"
+    weight: 0.8
+    description: "Content should have meaningful text"
+  - name: "proper_encoding"
+    weight: 0.9
+    description: "Content should be properly encoded"
+replaceable: false
+ephemeral: false

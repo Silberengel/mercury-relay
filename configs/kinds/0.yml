@@ -1,0 +1,22 @@
+# Kind 0: User Metadata
+name: "User Metadata"
+description: "User profile information"
+required_tags: []
+optional_tags: ["d"]
+content_validation:
+  type: "json"
+  required_fields: ["name"]
+  optional_fields: ["about", "picture", "banner", "website", "lud16", "nip05"]
+  max_length: 1000
+quality_rules:
+  - name: "valid_json"
+    weight: 1.0
+    description: "Content must be valid JSON"
+  - name: "has_name"
+    weight: 0.8
+    description: "Must have a name field"
+  - name: "reasonable_length"
+    weight: 0.6
+    description: "Content length should be reasonable"
+replaceable: true
+ephemeral: false
