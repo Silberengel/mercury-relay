@@ -20,7 +20,7 @@ func TestWritePermissionCheck(t *testing.T) {
 
 	t.Run("Owner write access", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 		}
@@ -33,7 +33,7 @@ func TestWritePermissionCheck(t *testing.T) {
 
 	t.Run("Follow list member write access", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 		}
@@ -53,7 +53,7 @@ func TestWritePermissionCheck(t *testing.T) {
 
 	t.Run("Public write enabled", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: true,
 			AllowPublicRead:  true,
 		}
@@ -72,7 +72,7 @@ func TestReadPermissionCheck(t *testing.T) {
 
 	t.Run("Public read enabled", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 		}
@@ -85,7 +85,7 @@ func TestReadPermissionCheck(t *testing.T) {
 
 	t.Run("Restricted read access", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  false,
 		}
@@ -140,7 +140,7 @@ func TestFollowListLoading(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -159,7 +159,7 @@ func TestFollowListLoading(t *testing.T) {
 		ownerNpub := eg.GetOwnerNpub()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         "http://nonexistent-relay.example.com",
@@ -187,7 +187,7 @@ func TestFollowListLoading(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -232,7 +232,7 @@ func TestPeriodicUpdate(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -263,7 +263,7 @@ func TestPeriodicUpdate(t *testing.T) {
 		ownerNpub := eg.GetOwnerNpub()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         "http://example.com",
@@ -294,7 +294,7 @@ func TestAccessControlMethods(t *testing.T) {
 
 	t.Run("GetAllowedNpubs", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 		}
@@ -312,7 +312,7 @@ func TestAccessControlMethods(t *testing.T) {
 
 	t.Run("IsOwner", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 		}
@@ -324,7 +324,7 @@ func TestAccessControlMethods(t *testing.T) {
 
 	t.Run("GetStats", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 		}
@@ -356,7 +356,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -396,7 +396,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -417,7 +417,7 @@ func TestAccessControlEdgeCases(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -471,7 +471,7 @@ func TestAccessControlIntegration(t *testing.T) {
 		defer server.Close()
 
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  true,
 			RelayURL:         server.URL,
@@ -500,7 +500,7 @@ func TestAccessControlIntegration(t *testing.T) {
 
 	t.Run("Owner always has access", func(t *testing.T) {
 		cfg := config.AccessConfig{
-			OwnerNpub:        ownerNpub,
+			AdminNpubs:       []string{ownerNpub},
 			AllowPublicWrite: false,
 			AllowPublicRead:  false,
 		}

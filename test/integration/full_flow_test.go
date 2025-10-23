@@ -49,7 +49,7 @@ func TestFullEventLifecycle(t *testing.T) {
 				WriteTimeout: 30 * time.Second,
 			},
 			Access: config.AccessConfig{
-				OwnerNpub:        eg.GetOwnerNpub(),
+				AdminNpubs:       []string{eg.GetOwnerNpub()},
 				UpdateInterval:   1 * time.Minute,
 				RelayURL:         mockRelay.URL,
 				AllowPublicRead:  true,
@@ -74,7 +74,7 @@ func TestFullEventLifecycle(t *testing.T) {
 		accessControl := access.NewController(cfg.Access)
 
 		// Initialize REST API
-		restAPI := api.NewRESTAPIServer(cfg.RESTAPI, qualityControl, mockQueue, mockCache)
+		restAPI := api.NewRESTAPIServer(cfg.RESTAPI, qualityControl, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080", &cfg)
 
 		// Initialize relay server
 		_ = relay.NewServer(cfg.Server, nil, mockQueue, mockCache, nil, qualityControl, accessControl, nil, restAPI)
@@ -167,7 +167,7 @@ func TestFullEventLifecycle(t *testing.T) {
 
 		cfg := config.Config{
 			Access: config.AccessConfig{
-				OwnerNpub:        eg.GetOwnerNpub(),
+				AdminNpubs:       []string{eg.GetOwnerNpub()},
 				UpdateInterval:   1 * time.Minute,
 				RelayURL:         mockRelay.URL,
 				AllowPublicRead:  true,
@@ -188,7 +188,7 @@ func TestFullEventLifecycle(t *testing.T) {
 		// Initialize components
 		qualityControl := quality.NewController(cfg.Quality, mockQueue, mockCache)
 		accessControl := access.NewController(cfg.Access)
-		restAPI := api.NewRESTAPIServer(cfg.RESTAPI, qualityControl, mockQueue, mockCache)
+		restAPI := api.NewRESTAPIServer(cfg.RESTAPI, qualityControl, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080", &cfg)
 
 		// Start components
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -353,7 +353,7 @@ func TestStressTest(t *testing.T) {
 
 		// Initialize components
 		qualityControl := quality.NewController(cfg.Quality, mockQueue, mockCache)
-		restAPI := api.NewRESTAPIServer(cfg.RESTAPI, qualityControl, mockQueue, mockCache)
+		restAPI := api.NewRESTAPIServer(cfg.RESTAPI, qualityControl, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080", &cfg)
 
 		// Start components
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -424,7 +424,7 @@ func TestWebSocketIntegration(t *testing.T) {
 				WriteTimeout: 30 * time.Second,
 			},
 			Access: config.AccessConfig{
-				OwnerNpub:        eg.GetOwnerNpub(),
+				AdminNpubs:       []string{eg.GetOwnerNpub()},
 				UpdateInterval:   1 * time.Minute,
 				RelayURL:         mockRelay.URL,
 				AllowPublicRead:  true,

@@ -19,7 +19,8 @@ server:
   write_timeout: "30s"
 
 access:
-  owner_npub: "npub1test"
+  admin_npubs:
+    - "npub1test"
   update_interval: "1h"
   relay_url: "https://relay.damus.io"
   allow_public_read: true
@@ -104,7 +105,8 @@ xftp:
 		helpers.AssertDurationEqual(t, 30*time.Second, cfg.Server.WriteTimeout)
 
 		// Verify access config
-		helpers.AssertStringEqual(t, "npub1test", cfg.Access.OwnerNpub)
+		helpers.AssertIntEqual(t, 1, len(cfg.Access.AdminNpubs))
+		helpers.AssertStringEqual(t, "npub1test", cfg.Access.AdminNpubs[0])
 		helpers.AssertDurationEqual(t, time.Hour, cfg.Access.UpdateInterval)
 		helpers.AssertStringEqual(t, "https://relay.damus.io", cfg.Access.RelayURL)
 		helpers.AssertBoolEqual(t, true, cfg.Access.AllowPublicRead)
@@ -163,11 +165,11 @@ xftp:
 
 	t.Run("Environment variable override", func(t *testing.T) {
 		// Set environment variables
-		os.Setenv("OWNER_NPUB", "npub1env")
+		os.Setenv("MERCURY_ADMIN_NPUBS", "npub1env")
 		os.Setenv("NOSTR_RELAY_PORT", "9090")
 		os.Setenv("STREAMING_ENABLED", "false")
 		defer func() {
-			os.Unsetenv("OWNER_NPUB")
+			os.Unsetenv("MERCURY_ADMIN_NPUBS")
 			os.Unsetenv("NOSTR_RELAY_PORT")
 			os.Unsetenv("STREAMING_ENABLED")
 		}()
@@ -179,7 +181,8 @@ server:
   port: 8080
 
 access:
-  owner_npub: "npub1default"
+  admin_npubs:
+    - "npub1default"
 
 streaming:
   enabled: true
@@ -198,7 +201,8 @@ streaming:
 		helpers.AssertNoError(t, err)
 
 		// Verify environment variables override YAML values
-		helpers.AssertStringEqual(t, "npub1env", cfg.Access.OwnerNpub)
+		helpers.AssertIntEqual(t, 1, len(cfg.Access.AdminNpubs))
+		helpers.AssertStringEqual(t, "npub1env", cfg.Access.AdminNpubs[0])
 		helpers.AssertIntEqual(t, 9090, cfg.Server.Port)
 		helpers.AssertBoolEqual(t, false, cfg.Streaming.Enabled)
 	})
@@ -246,7 +250,8 @@ server:
   port: -1  # Invalid negative port
 
 access:
-  owner_npub: "invalid-npub"  # Invalid npub format
+  admin_npubs:
+    - "invalid-npub"  # Invalid npub format
 `
 
 		tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
@@ -265,7 +270,8 @@ access:
 		helpers.AssertIntEqual(t, 8080, cfg.Server.Port) // Default port, not -1
 
 		// Invalid npub should still be stored (validation happens elsewhere)
-		helpers.AssertStringEqual(t, "invalid-npub", cfg.Access.OwnerNpub)
+		helpers.AssertIntEqual(t, 1, len(cfg.Access.AdminNpubs))
+		helpers.AssertStringEqual(t, "invalid-npub", cfg.Access.AdminNpubs[0])
 	})
 }
 
@@ -279,7 +285,7 @@ func TestConfigValidation(t *testing.T) {
 				WriteTimeout: 30 * time.Second,
 			},
 			Access: AccessConfig{
-				OwnerNpub:        "npub1valid",
+				AdminNpubs:       []string{"npub1valid"},
 				UpdateInterval:   1 * time.Hour,
 				RelayURL:         "https://relay.damus.io",
 				AllowPublicRead:  true,
@@ -318,7 +324,7 @@ func TestConfigValidation(t *testing.T) {
 				Port: 8080,
 			},
 			Access: AccessConfig{
-				OwnerNpub:        "",
+				AdminNpubs:       []string{},
 				UpdateInterval:   -1 * time.Hour,
 				RelayURL:         "invalid-url",
 				AllowPublicRead:  true,
@@ -354,7 +360,7 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 	t.Run("All environment variables", func(t *testing.T) {
 		// Set all environment variables
 		envVars := map[string]string{
-			"OWNER_NPUB":             "npub1env",
+			"MERCURY_ADMIN_NPUBS":    "npub1env",
 			"NOSTR_RELAY_PORT":       "9090",
 			"ADMIN_PORT":             "9091",
 			"REST_API_PORT":          "9092",
@@ -417,7 +423,8 @@ server:
 		helpers.AssertNoError(t, err)
 
 		// Verify environment variables are applied
-		helpers.AssertStringEqual(t, "npub1env", cfg.Access.OwnerNpub)
+		helpers.AssertIntEqual(t, 1, len(cfg.Access.AdminNpubs))
+		helpers.AssertStringEqual(t, "npub1env", cfg.Access.AdminNpubs[0])
 		helpers.AssertIntEqual(t, 9090, cfg.Server.Port)
 		helpers.AssertIntEqual(t, 9091, cfg.Admin.Port)
 		helpers.AssertIntEqual(t, 9092, cfg.RESTAPI.Port)

@@ -32,9 +32,15 @@ type AccessConfig struct {
 }
 
 func NewController(config config.AccessConfig) *Controller {
+	// Use the first admin npub as the primary owner for backward compatibility
+	ownerNpub := ""
+	if len(config.AdminNpubs) > 0 {
+		ownerNpub = config.AdminNpubs[0]
+	}
+
 	return &Controller{
 		config:       config,
-		ownerNpub:    config.OwnerNpub,
+		ownerNpub:    ownerNpub,
 		allowedNpubs: make(map[string]bool),
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,

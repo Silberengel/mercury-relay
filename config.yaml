@@ -98,7 +98,8 @@ quality:
 
 # Access Control
 access:
-  owner_npub: "${OWNER_NPUB:-npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl}"
+  admin_npubs:
+    - "${MERCURY_ADMIN_NPUBS:-npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl}"
   update_interval: "${ACCESS_UPDATE_INTERVAL:-1h}"
   relay_url: "${ACCESS_RELAY_URL:-https://relay.damus.io}"
   allow_public_read: "${ACCESS_PUBLIC_READ:-true}"

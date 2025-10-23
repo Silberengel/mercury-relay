@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -61,9 +62,9 @@ type SSHConfig struct {
 
 type SSHAuthentication struct {
 	RequireAuth       bool     `yaml:"require_auth"`
-	APIKey           string   `yaml:"api_key"`
-	BasicAuthUser    string   `yaml:"basic_auth_user"`
-	BasicAuthPass    string   `yaml:"basic_auth_pass"`
+	APIKey            string   `yaml:"api_key"`
+	BasicAuthUser     string   `yaml:"basic_auth_user"`
+	BasicAuthPass     string   `yaml:"basic_auth_pass"`
 	AuthorizedPubkeys []string `yaml:"authorized_pubkeys"`
 	AllowLocalhost    bool     `yaml:"allow_localhost"`
 }
@@ -134,7 +135,7 @@ type QualityConfig struct {
 }
 
 type AccessConfig struct {
-	OwnerNpub        string        `yaml:"owner_npub"`
+	AdminNpubs       []string      `yaml:"admin_npubs"`
 	UpdateInterval   time.Duration `yaml:"update_interval"`
 	RelayURL         string        `yaml:"relay_url"`
 	AllowPublicRead  bool          `yaml:"allow_public_read"`
@@ -252,6 +253,10 @@ func setDefaults(config *Config) {
 	}
 
 	// Access defaults
+	if len(config.Access.AdminNpubs) == 0 {
+		// Default admin npub (should be changed in production)
+		config.Access.AdminNpubs = []string{"npub1admin_default_change_me"}
+	}
 	if !config.Access.AllowPublicRead && !config.Access.AllowPublicWrite {
 		config.Access.AllowPublicRead = true
 		config.Access.AllowPublicWrite = false
@@ -322,7 +327,7 @@ func setDefaults(config *Config) {
 	if config.SSH.TerminalInterface.LogLevel == "" {
 		config.SSH.TerminalInterface.LogLevel = "info"
 	}
-	
+
 	// SSH authentication defaults
 	if config.SSH.Authentication.APIKey == "" {
 		config.SSH.Authentication.APIKey = "admin-ssh-key-2024"
@@ -359,8 +364,12 @@ func applyEnvOverrides(config *Config) {
 	}
 
 	// Access config
-	if owner := os.Getenv("OWNER_NPUB"); owner != "" {
-		config.Access.OwnerNpub = owner
+	if adminNpubs := os.Getenv("MERCURY_ADMIN_NPUBS"); adminNpubs != "" {
+		// Parse comma-separated admin npubs
+		config.Access.AdminNpubs = strings.Split(adminNpubs, ",")
+		for i, npub := range config.Access.AdminNpubs {
+			config.Access.AdminNpubs[i] = strings.TrimSpace(npub)
+		}
 	}
 	if url := os.Getenv("ACCESS_RELAY_URL"); url != "" {
 		config.Access.RelayURL = url

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"mercury-relay/internal/auth"
 	"mercury-relay/internal/cache"
 	"mercury-relay/internal/config"
 	"mercury-relay/internal/models"
@@ -28,6 +29,7 @@ type RESTAPIServer struct {
 	cache          cache.Cache
 	server         *http.Server
 	sshKeyManager  *SSHKeyManager
+	auth           *auth.UniversalAuthenticator
 }
 
 type APIResponse struct {
@@ -66,14 +68,17 @@ func NewRESTAPIServer(
 	cache cache.Cache,
 	sshConfig config.SSHConfig,
 	relayURL string,
+	cfg *config.Config,
 ) *RESTAPIServer {
 	sshKeyManager := NewSSHKeyManager(sshConfig, relayURL)
+	universalAuth := auth.NewUniversalAuthenticator(cfg, relayURL, cache, rabbitMQ)
 	return &RESTAPIServer{
 		config:         config,
 		qualityControl: qualityControl,
 		rabbitMQ:       rabbitMQ,
 		cache:          cache,
 		sshKeyManager:  sshKeyManager,
+		auth:           universalAuth,
 	}
 }
 
@@ -88,18 +93,18 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 	// Rate limiting middleware
 	router.Use(r.rateLimitMiddleware)
 
-	// API routes
+	// API routes - ALL REQUIRE AUTHENTICATION
 	api := router.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/events", r.HandleGetEvents).Methods("GET", "POST")
-	api.HandleFunc("/query", r.HandleQuery).Methods("POST")
-	api.HandleFunc("/publish", r.HandlePublish).Methods("POST")
-	api.HandleFunc("/stream", r.HandleStream).Methods("GET")                    // HTTP streaming
-	api.HandleFunc("/sse", r.HandleSSE).Methods("GET")                          // Server-Sent Events
-	api.HandleFunc("/ebooks", r.HandleEbooks).Methods("GET")                    // E-book specific endpoint
-	api.HandleFunc("/ebooks/{id}/content", r.HandleEbookContent).Methods("GET") // E-book content with nested structure
-	api.HandleFunc("/ebooks/{id}/epub", r.HandleEbookEPUB).Methods("GET")       // Generate EPUB from Nostr book
-	api.HandleFunc("/health", r.HandleHealth).Methods("GET")
-	api.HandleFunc("/stats", r.HandleStats).Methods("GET")
+	api.HandleFunc("/events", r.auth.RequireAuth(r.HandleGetEvents)).Methods("GET", "POST")
+	api.HandleFunc("/query", r.auth.RequireAuth(r.HandleQuery)).Methods("POST")
+	api.HandleFunc("/publish", r.auth.RequireAuth(r.HandlePublish)).Methods("POST")
+	api.HandleFunc("/stream", r.auth.RequireAuth(r.HandleStream)).Methods("GET")                    // HTTP streaming
+	api.HandleFunc("/sse", r.auth.RequireAuth(r.HandleSSE)).Methods("GET")                          // Server-Sent Events
+	api.HandleFunc("/ebooks", r.auth.RequireAuth(r.HandleEbooks)).Methods("GET")                    // E-book specific endpoint
+	api.HandleFunc("/ebooks/{id}/content", r.auth.RequireAuth(r.HandleEbookContent)).Methods("GET") // E-book content with nested structure
+	api.HandleFunc("/ebooks/{id}/epub", r.auth.RequireAuth(r.HandleEbookEPUB)).Methods("GET")       // Generate EPUB from Nostr book
+	api.HandleFunc("/health", r.auth.RequireAuth(r.HandleHealth)).Methods("GET")
+	api.HandleFunc("/stats", r.auth.RequireAuth(r.HandleStats)).Methods("GET")
 
 	// SSH Key Management endpoints
 	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleUploadSSHKey).Methods("POST")
@@ -112,6 +117,12 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 
 	// SSH Key form interface
 	router.HandleFunc("/ssh-keys", r.sshKeyManager.HandleSSHKeyForm).Methods("GET", "POST")
+
+	// Admin-only endpoints
+	api.HandleFunc("/admin/whitelist", r.auth.RequireAdmin(r.HandleGetWhitelist)).Methods("GET")
+	api.HandleFunc("/admin/whitelist", r.auth.RequireAdmin(r.HandleAddToWhitelist)).Methods("POST")
+	api.HandleFunc("/admin/whitelist/{npub}", r.auth.RequireAdmin(r.HandleRemoveFromWhitelist)).Methods("DELETE")
+	api.HandleFunc("/admin/admins", r.auth.RequireAdmin(r.HandleGetAdmins)).Methods("GET")
 
 	// Start server
 	r.server = &http.Server{
@@ -1206,4 +1217,66 @@ func (r *RESTAPIServer) sendError(w http.ResponseWriter, message string, statusC
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+// Admin handler methods
+
+// HandleGetWhitelist returns the current whitelist (admin only)
+func (r *RESTAPIServer) HandleGetWhitelist(w http.ResponseWriter, req *http.Request) {
+	adminNpub := r.auth.GetAuthenticatedNpub(req)
+	whitelist, err := r.auth.GetWhitelist(adminNpub)
+	if err != nil {
+		r.sendError(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	r.sendSuccess(w, map[string]interface{}{
+		"whitelist": whitelist,
+	})
+}
+
+// HandleAddToWhitelist adds a user to the whitelist (admin only)
+func (r *RESTAPIServer) HandleAddToWhitelist(w http.ResponseWriter, req *http.Request) {
+	var request struct {
+		Npub string `json:"npub"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+		r.sendError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	adminNpub := r.auth.GetAuthenticatedNpub(req)
+	if err := r.auth.AddToWhitelist(adminNpub, request.Npub); err != nil {
+		r.sendError(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	r.sendSuccess(w, map[string]string{
+		"message": fmt.Sprintf("Added %s to whitelist", request.Npub),
+	})
+}
+
+// HandleRemoveFromWhitelist removes a user from the whitelist (admin only)
+func (r *RESTAPIServer) HandleRemoveFromWhitelist(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	npub := vars["npub"]
+
+	adminNpub := r.auth.GetAuthenticatedNpub(req)
+	if err := r.auth.RemoveFromWhitelist(adminNpub, npub); err != nil {
+		r.sendError(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	r.sendSuccess(w, map[string]string{
+		"message": fmt.Sprintf("Removed %s from whitelist", npub),
+	})
+}
+
+// HandleGetAdmins returns all admin npubs (admin only)
+func (r *RESTAPIServer) HandleGetAdmins(w http.ResponseWriter, req *http.Request) {
+	adminNpubs := r.auth.GetAdminNpubs()
+	r.sendSuccess(w, map[string]interface{}{
+		"admins": adminNpubs,
+	})
 }
