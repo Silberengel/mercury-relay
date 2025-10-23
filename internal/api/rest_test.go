@@ -38,7 +38,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create request
 		req := httptest.NewRequest("GET", "/api/v1/events?authors="+npub1+"&kinds=1&limit=10", nil)
@@ -87,7 +87,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create request with time range
 		req := httptest.NewRequest("GET", "/api/v1/events?since=1640995250&until=1640995350", nil)
@@ -126,7 +126,7 @@ func TestRESTAPIGetEvents(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create POST request with JSON body
 		eventReq := EventRequest{
@@ -168,7 +168,7 @@ func TestRESTAPIPublish(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create valid event
 		event := eg.GenerateTextNote(eg.GetRandomNpub(), "Test message", nostr.Tags{})
@@ -214,7 +214,7 @@ func TestRESTAPIPublish(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create invalid event (missing required fields)
 		event := &models.Event{
@@ -284,7 +284,7 @@ func TestRESTAPIEbooks(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create request
 		req := httptest.NewRequest("GET", "/api/v1/ebooks?format=epub&limit=20", nil)
@@ -336,7 +336,7 @@ func TestRESTAPIEbooks(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create request for specific author
 		req := httptest.NewRequest("GET", "/api/v1/ebooks?author="+npub1, nil)
@@ -371,7 +371,7 @@ func TestRESTAPIHealth(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create request
 		req := httptest.NewRequest("GET", "/api/v1/health", nil)
@@ -409,7 +409,7 @@ func TestRESTAPIStats(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create request
 		req := httptest.NewRequest("GET", "/api/v1/stats", nil)
@@ -448,7 +448,7 @@ func TestRESTAPICORS(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Create OPTIONS request
 		req := httptest.NewRequest("OPTIONS", "/api/v1/events", nil)
@@ -481,7 +481,7 @@ func TestRESTAPIRateLimiting(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 
 		// Make multiple rapid requests
 		// Note: The current implementation doesn't have actual rate limiting,
@@ -553,7 +553,7 @@ func TestRESTAPIIntegration(t *testing.T) {
 			CORSEnabled: true,
 		}
 
-		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache)
+		server := NewRESTAPIServer(cfg, nil, mockQueue, mockCache, config.SSHConfig{Enabled: false}, "ws://localhost:8080")
 		eg := models.NewEventGenerator()
 
 		// Step 1: Publish event via REST

@@ -34,12 +34,30 @@ type SSHKeyManager struct {
 	mu     sync.RWMutex
 }
 
+// NewSSHKeyManager creates a new SSH key manager
+func NewSSHKeyManager(config config.SSHKeyStorage) *SSHKeyManager {
+	return &SSHKeyManager{
+		config: config,
+		keys:   make(map[string]*SSHKey),
+	}
+}
+
 type SSHKey struct {
 	Name       string
 	PrivateKey *rsa.PrivateKey
 	PublicKey  ssh.PublicKey
 	CreatedAt  time.Time
 	Comment    string
+	OwnerNpub  string // Nostr pubkey of the owner
+}
+
+// SSHKeyInfo represents public information about an SSH key for API responses
+type SSHKeyInfo struct {
+	Name      string `json:"name"`
+	Type      string `json:"type"`
+	CreatedAt string `json:"created_at"`
+	Comment   string `json:"comment"`
+	OwnerNpub string `json:"owner_npub"`
 }
 
 type SSHConnection struct {
@@ -219,34 +237,40 @@ func (s *SSHTransport) handleTerminalConnection(conn net.Conn) {
 }
 
 func (s *SSHTransport) handleListKeys(conn net.Conn) {
-	keys := s.keyManager.ListKeys()
-	if len(keys) == 0 {
-		conn.Write([]byte("No SSH keys found.\n"))
-		return
-	}
-
-	conn.Write([]byte("SSH Keys:\n"))
-	for _, key := range keys {
-		conn.Write([]byte(fmt.Sprintf("  %s (%s) - Created: %s\n",
-			key.Name, key.Comment, key.CreatedAt.Format("2006-01-02 15:04:05"))))
-	}
+	conn.Write([]byte("❌ Authentication required for SSH key management.\n"))
+	conn.Write([]byte("Please use the Nostr-authenticated SSH key manager:\n"))
+	conn.Write([]byte("  export MERCURY_PRIVATE_KEY=\"nsec1your-private-key\"\n"))
+	conn.Write([]byte("  ./nostr-ssh-manager\n"))
 }
 
 func (s *SSHTransport) handleAddKey(conn net.Conn) {
-	conn.Write([]byte("Enter key name: "))
-	// This is a simplified implementation - in practice, you'd want proper input handling
-	conn.Write([]byte("Key generation not implemented in this simplified version.\n"))
+	conn.Write([]byte("❌ Authentication required for SSH key management.\n"))
+	conn.Write([]byte("Please use the Nostr-authenticated SSH key manager:\n"))
+	conn.Write([]byte("  export MERCURY_PRIVATE_KEY=\"nsec1your-private-key\"\n"))
+	conn.Write([]byte("  ./nostr-ssh-manager\n"))
 }
 
 func (s *SSHTransport) handleRemoveKey(conn net.Conn) {
-	conn.Write([]byte("Enter key name to remove: "))
-	// This is a simplified implementation - in practice, you'd want proper input handling
-	conn.Write([]byte("Key removal not implemented in this simplified version.\n"))
+	conn.Write([]byte("❌ Authentication required for SSH key management.\n"))
+	conn.Write([]byte("Please use the Nostr-authenticated SSH key manager:\n"))
+	conn.Write([]byte("  export MERCURY_PRIVATE_KEY=\"nsec1your-private-key\"\n"))
+	conn.Write([]byte("  ./nostr-ssh-manager\n"))
 }
 
 func (s *SSHTransport) handleHelp(conn net.Conn) {
-	conn.Write([]byte("Available commands:\n"))
-	conn.Write([]byte("  list   - List all SSH keys\n"))
+	conn.Write([]byte("🔐 SSH Key Management - Nostr Authentication Required\n"))
+	conn.Write([]byte("==================================================\n"))
+	conn.Write([]byte("❌ This terminal interface requires Nostr authentication.\n"))
+	conn.Write([]byte("Please use the Nostr-authenticated SSH key manager:\n"))
+	conn.Write([]byte("\n"))
+	conn.Write([]byte("1. Set your Nostr private key:\n"))
+	conn.Write([]byte("   export MERCURY_PRIVATE_KEY=\"nsec1your-private-key\"\n"))
+	conn.Write([]byte("\n"))
+	conn.Write([]byte("2. Run the authenticated SSH key manager:\n"))
+	conn.Write([]byte("   ./nostr-ssh-manager\n"))
+	conn.Write([]byte("\n"))
+	conn.Write([]byte("Available commands in authenticated mode:\n"))
+	conn.Write([]byte("  list   - List your SSH keys\n"))
 	conn.Write([]byte("  add    - Add a new SSH key\n"))
 	conn.Write([]byte("  remove - Remove an SSH key\n"))
 	conn.Write([]byte("  help   - Show this help message\n"))
@@ -395,15 +419,53 @@ func (km *SSHKeyManager) GetKey(name string) (*SSHKey, bool) {
 	return key, exists
 }
 
-func (km *SSHKeyManager) ListKeys() []*SSHKey {
+func (km *SSHKeyManager) ListKeys() []SSHKeyInfo {
 	km.mu.RLock()
 	defer km.mu.RUnlock()
 
-	keys := make([]*SSHKey, 0, len(km.keys))
+	keys := make([]SSHKeyInfo, 0, len(km.keys))
 	for _, key := range km.keys {
-		keys = append(keys, key)
+		keys = append(keys, SSHKeyInfo{
+			Name:      key.Name,
+			Type:      "rsa", // Default type, could be determined from key
+			CreatedAt: key.CreatedAt.Format("2006-01-02 15:04:05"),
+			Comment:   key.Comment,
+			OwnerNpub: key.OwnerNpub,
+		})
 	}
 	return keys
+}
+
+// ListKeysByOwner returns SSH keys owned by a specific Nostr pubkey
+func (km *SSHKeyManager) ListKeysByOwner(ownerNpub string) []SSHKeyInfo {
+	km.mu.RLock()
+	defer km.mu.RUnlock()
+
+	keys := make([]SSHKeyInfo, 0)
+	for _, key := range km.keys {
+		if key.OwnerNpub == ownerNpub {
+			keys = append(keys, SSHKeyInfo{
+				Name:      key.Name,
+				Type:      "rsa", // Default type, could be determined from key
+				CreatedAt: key.CreatedAt.Format("2006-01-02 15:04:05"),
+				Comment:   key.Comment,
+				OwnerNpub: key.OwnerNpub,
+			})
+		}
+	}
+	return keys
+}
+
+// IsOwner checks if a Nostr pubkey owns a specific SSH key
+func (km *SSHKeyManager) IsOwner(keyName, ownerNpub string) bool {
+	km.mu.RLock()
+	defer km.mu.RUnlock()
+
+	key, exists := km.keys[keyName]
+	if !exists {
+		return false
+	}
+	return key.OwnerNpub == ownerNpub
 }
 
 func (km *SSHKeyManager) RemoveKey(name string) error {
@@ -430,6 +492,63 @@ func (km *SSHKeyManager) RemoveKey(name string) error {
 	// Remove from memory
 	delete(km.keys, name)
 	return nil
+}
+
+func (km *SSHKeyManager) SaveKey(name string, privateKeyData, publicKeyData []byte, ownerNpub string) error {
+	km.mu.Lock()
+	defer km.mu.Unlock()
+
+	// Parse private key
+	privateKey, err := parsePrivateKey(privateKeyData)
+	if err != nil {
+		return fmt.Errorf("failed to parse private key: %w", err)
+	}
+
+	// Parse or generate public key
+	var publicKey ssh.PublicKey
+	if len(publicKeyData) > 0 {
+		publicKey, err = parsePublicKey(publicKeyData)
+		if err != nil {
+			return fmt.Errorf("failed to parse public key: %w", err)
+		}
+	} else {
+		// Generate public key from private key
+		publicKey, err = createPublicKey(privateKey)
+		if err != nil {
+			return fmt.Errorf("failed to create public key: %w", err)
+		}
+	}
+
+	// Create SSH key object
+	sshKey := &SSHKey{
+		Name:       name,
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		CreatedAt:  time.Now(),
+		Comment:    fmt.Sprintf("Uploaded key %s", name),
+		OwnerNpub:  ownerNpub,
+	}
+
+	// Save private key to file
+	privateKeyPath := filepath.Join(km.config.KeyDir, name+km.config.PrivateKeyExt)
+	if err := os.WriteFile(privateKeyPath, privateKeyData, 0600); err != nil {
+		return fmt.Errorf("failed to save private key: %w", err)
+	}
+
+	// Save public key to file
+	publicKeyPath := filepath.Join(km.config.KeyDir, name+km.config.PublicKeyExt)
+	publicKeyBytes := ssh.MarshalAuthorizedKey(publicKey)
+	if err := os.WriteFile(publicKeyPath, publicKeyBytes, 0644); err != nil {
+		return fmt.Errorf("failed to save public key: %w", err)
+	}
+
+	// Store in memory
+	km.keys[name] = sshKey
+	return nil
+}
+
+func (km *SSHKeyManager) GetKeyDir() string {
+	return km.config.KeyDir
 }
 
 func (km *SSHKeyManager) GetAuthMethods() []ssh.AuthMethod {
@@ -500,4 +619,39 @@ func (s *SSHTransport) CloseSSHConnection(conn *SSHConnection) error {
 		return conn.Client.Close()
 	}
 	return nil
+}
+
+// parsePrivateKey parses a private key from PEM data
+func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		// Try PKCS8 format
+		genericKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse private key: %w", err)
+		}
+
+		rsaKey, ok := genericKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("key is not RSA private key")
+		}
+		return rsaKey, nil
+	}
+
+	return key, nil
+}
+
+// parsePublicKey parses a public key from SSH format
+func parsePublicKey(data []byte) (ssh.PublicKey, error) {
+	return ssh.ParsePublicKey(data)
+}
+
+// createPublicKey creates an SSH public key from an RSA private key
+func createPublicKey(privateKey *rsa.PrivateKey) (ssh.PublicKey, error) {
+	return ssh.NewPublicKey(&privateKey.PublicKey)
 }

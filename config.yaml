@@ -49,6 +49,15 @@ ssh:
     host: "${SSH_TERMINAL_HOST:-localhost}"
     interactive: ${SSH_TERMINAL_INTERACTIVE:-true}
     log_level: "${SSH_TERMINAL_LOG_LEVEL:-info}"
+  authentication:
+    require_auth: ${SSH_REQUIRE_AUTH:-true}
+    api_key: "${SSH_API_KEY:-admin-ssh-key-2024}"
+    basic_auth_user: "${SSH_BASIC_AUTH_USER:-admin}"
+    basic_auth_pass: "${SSH_BASIC_AUTH_PASS:-mercury-ssh-2024}"
+    authorized_pubkeys:
+      - "${SSH_AUTHORIZED_PUBKEY_1:-}"
+      - "${SSH_AUTHORIZED_PUBKEY_2:-}"
+    allow_localhost: ${SSH_ALLOW_LOCALHOST:-true}
 
 # RabbitMQ Configuration
 rabbitmq:

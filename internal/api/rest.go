@@ -27,6 +27,7 @@ type RESTAPIServer struct {
 	rabbitMQ       queue.Queue
 	cache          cache.Cache
 	server         *http.Server
+	sshKeyManager  *SSHKeyManager
 }
 
 type APIResponse struct {
@@ -63,12 +64,16 @@ func NewRESTAPIServer(
 	qualityControl *quality.Controller,
 	rabbitMQ queue.Queue,
 	cache cache.Cache,
+	sshConfig config.SSHConfig,
+	relayURL string,
 ) *RESTAPIServer {
+	sshKeyManager := NewSSHKeyManager(sshConfig, relayURL)
 	return &RESTAPIServer{
 		config:         config,
 		qualityControl: qualityControl,
 		rabbitMQ:       rabbitMQ,
 		cache:          cache,
+		sshKeyManager:  sshKeyManager,
 	}
 }
 
@@ -95,6 +100,18 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 	api.HandleFunc("/ebooks/{id}/epub", r.HandleEbookEPUB).Methods("GET")       // Generate EPUB from Nostr book
 	api.HandleFunc("/health", r.HandleHealth).Methods("GET")
 	api.HandleFunc("/stats", r.HandleStats).Methods("GET")
+
+	// SSH Key Management endpoints
+	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleUploadSSHKey).Methods("POST")
+	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleListSSHKeys).Methods("GET")
+	api.HandleFunc("/ssh-keys/{name}", r.sshKeyManager.HandleDeleteSSHKey).Methods("DELETE")
+
+	// Nostr Authentication endpoints
+	api.HandleFunc("/nostr/challenge", r.sshKeyManager.HandleNostrChallenge).Methods("GET")
+	api.HandleFunc("/nostr/auth", r.sshKeyManager.HandleNostrAuth).Methods("POST")
+
+	// SSH Key form interface
+	router.HandleFunc("/ssh-keys", r.sshKeyManager.HandleSSHKeyForm).Methods("GET", "POST")
 
 	// Start server
 	r.server = &http.Server{

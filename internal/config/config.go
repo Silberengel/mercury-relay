@@ -56,6 +56,16 @@ type SSHConfig struct {
 	KeyStorage        SSHKeyStorage     `yaml:"key_storage"`
 	Connection        SSHConnection     `yaml:"connection"`
 	TerminalInterface TerminalInterface `yaml:"terminal_interface"`
+	Authentication    SSHAuthentication `yaml:"authentication"`
+}
+
+type SSHAuthentication struct {
+	RequireAuth       bool     `yaml:"require_auth"`
+	APIKey           string   `yaml:"api_key"`
+	BasicAuthUser    string   `yaml:"basic_auth_user"`
+	BasicAuthPass    string   `yaml:"basic_auth_pass"`
+	AuthorizedPubkeys []string `yaml:"authorized_pubkeys"`
+	AllowLocalhost    bool     `yaml:"allow_localhost"`
 }
 
 type SSHKeyStorage struct {
@@ -311,6 +321,23 @@ func setDefaults(config *Config) {
 	}
 	if config.SSH.TerminalInterface.LogLevel == "" {
 		config.SSH.TerminalInterface.LogLevel = "info"
+	}
+	
+	// SSH authentication defaults
+	if config.SSH.Authentication.APIKey == "" {
+		config.SSH.Authentication.APIKey = "admin-ssh-key-2024"
+	}
+	if config.SSH.Authentication.BasicAuthUser == "" {
+		config.SSH.Authentication.BasicAuthUser = "admin"
+	}
+	if config.SSH.Authentication.BasicAuthPass == "" {
+		config.SSH.Authentication.BasicAuthPass = "mercury-ssh-2024"
+	}
+	if !config.SSH.Authentication.RequireAuth {
+		config.SSH.Authentication.RequireAuth = true // Default to requiring auth
+	}
+	if !config.SSH.Authentication.AllowLocalhost {
+		config.SSH.Authentication.AllowLocalhost = true // Default to allowing localhost
 	}
 }
 
