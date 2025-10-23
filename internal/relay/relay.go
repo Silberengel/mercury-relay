@@ -54,6 +54,7 @@ type Connection struct {
 	subs     map[string]*Subscription
 	subMutex sync.RWMutex
 	lastPing time.Time
+	pubkey   string // Authenticated user's public key
 }
 
 type Subscription struct {
@@ -198,6 +199,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		conn:     conn,
 		subs:     make(map[string]*Subscription),
 		lastPing: time.Now(),
+		pubkey:   "", // TODO: Extract from authentication
 	}
 
 	// Register connection
@@ -405,6 +407,9 @@ func (s *Server) sendMatchingEvents(conn *Connection, sub *Subscription) {
 		log.Printf("Error getting events from cache: %v", err)
 	}
 
+	// Create privacy filter for the connection
+	privacyFilter := NewPrivacyFilter(conn.pubkey)
+
 	// Send events
 	for _, event := range events {
 		if !sub.Active {
@@ -413,7 +418,10 @@ func (s *Server) sendMatchingEvents(conn *Connection, sub *Subscription) {
 
 		// Check if event matches filter
 		if s.eventMatchesFilter(event, sub.Filter) {
-			s.sendEvent(conn.conn, sub.ID, event)
+			// Apply privacy filtering
+			if privacyFilter.CanAccessEvent(event) {
+				s.sendEvent(conn.conn, sub.ID, event)
+			}
 		}
 	}
 }

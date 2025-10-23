@@ -278,3 +278,37 @@ func (m *MockCacheWithError) GetStats() (map[string]interface{}, error) {
 	}
 	return m.MockCache.GetStats()
 }
+
+// GetReplaceableEventHistory returns mock history for replaceable events
+func (m *MockCache) GetReplaceableEventHistory(kind int, pubkey, dTag string) ([]map[string]interface{}, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	// Mock implementation - return empty history
+	return []map[string]interface{}{}, nil
+}
+
+// GetLatestReplaceableEvent returns the latest version of a replaceable event
+func (m *MockCache) GetLatestReplaceableEvent(kind int, pubkey, dTag string) (*models.Event, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	// Mock implementation - return nil (not found)
+	return nil, nil
+}
+
+// GetReplaceableEventHistory returns configured error
+func (m *MockCacheWithError) GetReplaceableEventHistory(kind int, pubkey, dTag string) ([]map[string]interface{}, error) {
+	if m.storeError != nil {
+		return nil, m.storeError
+	}
+	return m.MockCache.GetReplaceableEventHistory(kind, pubkey, dTag)
+}
+
+// GetLatestReplaceableEvent returns configured error
+func (m *MockCacheWithError) GetLatestReplaceableEvent(kind int, pubkey, dTag string) (*models.Event, error) {
+	if m.storeError != nil {
+		return nil, m.storeError
+	}
+	return m.MockCache.GetLatestReplaceableEvent(kind, pubkey, dTag)
+}

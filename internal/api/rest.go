@@ -111,6 +111,13 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 	api.HandleFunc("/kind/{kind}/stats", r.auth.RequireAuth(r.HandleKindStats)).Methods("GET")   // Get kind queue stats
 	api.HandleFunc("/kind/stats", r.auth.RequireAuth(r.HandleAllKindStats)).Methods("GET")       // Get all kind queue stats
 
+	// Event history endpoints
+	api.HandleFunc("/history/{kind}/{pubkey}/{d_tag}", r.auth.RequireAuth(r.HandleEventHistory)).Methods("GET")                    // Get event history
+	api.HandleFunc("/history/{kind}/{pubkey}/{d_tag}/diff/{from_version}/{to_version}", r.auth.RequireAuth(r.HandleEventDiff)).Methods("GET") // Get event diff
+	api.HandleFunc("/history/{kind}/{pubkey}/{d_tag}/{version}", r.auth.RequireAuth(r.HandleEventVersion)).Methods("GET")         // Get specific version
+	api.HandleFunc("/history/event/{event_id}", r.auth.RequireAuth(r.HandleEventHistoryByID)).Methods("GET")                       // Get history by event ID
+	api.HandleFunc("/history/diff/{from_event_id}/{to_event_id}", r.auth.RequireAuth(r.HandleEventDiffByID)).Methods("GET")       // Get diff by event IDs
+
 	// SSH Key Management endpoints
 	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleUploadSSHKey).Methods("POST")
 	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleListSSHKeys).Methods("GET")

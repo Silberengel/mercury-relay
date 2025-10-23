@@ -251,6 +251,143 @@ POST /api/v1/publish
 }
 ```
 
+## Event History and Versioning
+
+### Get Event History
+```http
+GET /api/v1/history/{kind}/{pubkey}/{d_tag}
+```
+
+**Description**: Get the history of a replaceable event.
+
+**Authentication**: Required
+
+**Parameters**:
+- `kind`: Event kind number
+- `pubkey`: Author's public key
+- `d_tag`: D-tag value (use empty string if no d-tag)
+
+**Response**:
+```json
+{
+  "success": true,
+  "key": "0:npub1author...:profile",
+  "history": [
+    {
+      "event_id": "event_id_1",
+      "version": 1,
+      "created_at": 1700000000,
+      "hash": "abc123..."
+    },
+    {
+      "event_id": "event_id_2", 
+      "version": 2,
+      "created_at": 1700000100,
+      "hash": "def456..."
+    }
+  ]
+}
+```
+
+### Get Event Diff
+```http
+GET /api/v1/history/{kind}/{pubkey}/{d_tag}/diff/{from_version}/{to_version}
+```
+
+**Description**: Compare two versions of a replaceable event.
+
+**Authentication**: Required
+
+**Parameters**:
+- `kind`: Event kind number
+- `pubkey`: Author's public key
+- `d_tag`: D-tag value
+- `from_version`: Source version number
+- `to_version`: Target version number
+
+**Response**:
+```json
+{
+  "success": true,
+  "key": "0:npub1author...:profile",
+  "from_version": 1,
+  "to_version": 2,
+  "diff": {
+    "changes": {
+      "event_id": {
+        "from": "old_event_id",
+        "to": "new_event_id"
+      },
+      "hash": {
+        "from": "old_hash",
+        "to": "new_hash"
+      }
+    },
+    "added": [],
+    "removed": [],
+    "modified": ["event_id", "hash"]
+  }
+}
+```
+
+### Get Specific Event Version
+```http
+GET /api/v1/history/{kind}/{pubkey}/{d_tag}/{version}
+```
+
+**Description**: Get a specific version of a replaceable event.
+
+**Authentication**: Required
+
+**Parameters**:
+- `kind`: Event kind number
+- `pubkey`: Author's public key
+- `d_tag`: D-tag value
+- `version`: Version number
+
+**Response**:
+```json
+{
+  "success": true,
+  "key": "0:npub1author...:profile",
+  "version": {
+    "event_id": "event_id_2",
+    "version": 2,
+    "created_at": 1700000100,
+    "hash": "def456..."
+  }
+}
+```
+
+### Get Event History by Event ID
+```http
+GET /api/v1/history/event/{event_id}
+```
+
+**Description**: Get the history of a replaceable event by its event ID.
+
+**Authentication**: Required
+
+**Parameters**:
+- `event_id`: The event ID
+
+**Response**: Same as Get Event History
+
+### Get Event Diff by Event IDs
+```http
+GET /api/v1/history/diff/{from_event_id}/{to_event_id}
+```
+
+**Description**: Compare two events by their event IDs.
+
+**Authentication**: Required
+
+**Parameters**:
+- `from_event_id`: Source event ID
+- `to_event_id`: Target event ID
+
+**Response**: Same as Get Event Diff
+
 ## Kind-Based Filtering
 
 ### Get Events by Kind

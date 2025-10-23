@@ -13,4 +13,8 @@ type Cache interface {
 	DeleteEvent(eventID string) error
 	GetStats() (map[string]interface{}, error)
 	Close() error
+	
+	// Replaceable event history methods
+	GetReplaceableEventHistory(kind int, pubkey, dTag string) ([]map[string]interface{}, error)
+	GetLatestReplaceableEvent(kind int, pubkey, dTag string) (*models.Event, error)
 }
