@@ -114,6 +114,15 @@ The relay uses YAML configuration with environment variable overrides. See the [
 
 - `MERCURY_ADMIN_NPUBS`: Comma-separated list of admin npubs (supports hex/bech32)
 - `MERCURY_PRIVATE_KEY`: Private key for authentication (supports hex/bech32)
+
+### Authentication
+
+- **Public Endpoints**: Health check (`/api/v1/health`) is public for connection monitoring
+- **SSH Tunnels**: Initial setup requires Nostr authentication, then uses standard SSH authentication
+- **API Endpoints**: Most endpoints require Nostr authentication using NIP-42
+
+### Additional Environment Variables
+
 - `NOSTR_RELAY_PORT`: WebSocket port (default: 8080)
 - `ADMIN_PORT`: Admin API port (default: 8081)
 - `REST_API_PORT`: REST API port (default: 8082)

@@ -9,11 +9,21 @@ This document describes the REST API endpoints provided by Mercury Relay, includ
 
 ## Authentication
 
+### Nostr Authentication
+
 Most endpoints require Nostr authentication using NIP-42. Include the authentication header:
 
 ```
 Authorization: Nostr <base64-encoded-event>
 ```
+
+### SSH Tunnel Authentication
+
+SSH tunnel setup requires Nostr authentication, but once established, the tunnel works with standard SSH authentication:
+
+1. **Initial Setup**: Use Nostr authentication to upload SSH keys and establish tunnel
+2. **Tunnel Usage**: Once established, use standard SSH authentication for tunnel connections
+3. **Health Monitoring**: Health endpoint is public for connection monitoring
 
 ## Health and Status
 
@@ -24,7 +34,7 @@ GET /api/v1/health
 
 **Description**: Check if the relay is running and healthy.
 
-**Authentication**: None required
+**Authentication**: None required (public endpoint for connection monitoring)
 
 **Response**:
 ```json
@@ -54,6 +64,112 @@ GET /api/v1/stats
   "uptime": "2h30m15s",
   "memory_usage": "45MB",
   "active_connections": 25
+}
+```
+
+## SSH Key Management
+
+### Upload SSH Key
+```http
+POST /api/v1/ssh-keys
+```
+
+**Description**: Upload an SSH key for tunnel authentication.
+
+**Authentication**: Required (Nostr authentication for initial setup)
+
+**Request Body**:
+```json
+{
+  "name": "my-tunnel-key",
+  "private_key": "-----BEGIN OPENSSH PRIVATE KEY-----\n...",
+  "public_key": "ssh-rsa AAAAB3NzaC1yc2E...",
+  "key_type": "rsa",
+  "description": "Tunnel key for remote access"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "SSH key uploaded successfully",
+  "key_name": "my-tunnel-key",
+  "key_path": "/app/ssh-keys/my-tunnel-key"
+}
+```
+
+### List SSH Keys
+```http
+GET /api/v1/ssh-keys
+```
+
+**Description**: List SSH keys owned by the authenticated user.
+
+**Authentication**: Required
+
+**Response**:
+```json
+[
+  {
+    "name": "my-tunnel-key",
+    "public_key": "ssh-rsa AAAAB3NzaC1yc2E...",
+    "key_type": "rsa",
+    "description": "Tunnel key for remote access",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+### Delete SSH Key
+```http
+DELETE /api/v1/ssh-keys/{name}
+```
+
+**Description**: Delete an SSH key.
+
+**Authentication**: Required
+
+**Parameters**:
+- `name`: SSH key name
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "SSH key deleted successfully"
+}
+```
+
+### Nostr Authentication for SSH
+```http
+GET /api/v1/nostr/challenge
+POST /api/v1/nostr/auth
+```
+
+**Description**: Nostr authentication endpoints for SSH key management.
+
+**Authentication**: None required for challenge, Nostr authentication for auth
+
+**Challenge Response**:
+```json
+{
+  "challenge": "random_challenge_string"
+}
+```
+
+**Auth Request**:
+```json
+{
+  "event": {
+    "id": "event_id",
+    "pubkey": "author_pubkey",
+    "created_at": 1700000000,
+    "kind": 22242,
+    "tags": [["challenge", "random_challenge_string"]],
+    "content": "",
+    "sig": "signature"
+  }
 }
 ```
 

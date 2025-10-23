@@ -32,6 +32,12 @@ server:
 auth:
   admin_npubs: ["npub1admin1...", "npub1admin2..."]
   private_key: "nsec1private..."
+  
+# SSH Configuration (for tunnel authentication)
+ssh:
+  key_storage: "/app/ssh-keys"
+  authentication:
+    authorized_pubkeys: ["npub1user1...", "npub1user2..."]
 
 # Database
 database:
@@ -182,6 +188,23 @@ quality_rules:
 replaceable: false
 ephemeral: false
 ```
+
+## Authentication Requirements
+
+### Public Endpoints (No Authentication Required)
+- `GET /api/v1/health` - Health check for connection monitoring
+- `GET /api/v1/nostr/challenge` - Nostr authentication challenge
+
+### Nostr Authentication Required
+- All event management endpoints (`/api/v1/events`, `/api/v1/publish`)
+- All kind-based filtering endpoints (`/api/v1/kind/*`)
+- SSH key management endpoints (`/api/v1/ssh-keys/*`)
+- Statistics and monitoring endpoints (`/api/v1/stats`)
+
+### SSH Tunnel Authentication Flow
+1. **Initial Setup**: Requires Nostr authentication to upload SSH keys
+2. **Tunnel Usage**: Once established, uses standard SSH authentication
+3. **Health Monitoring**: Public health endpoint for connection monitoring
 
 ## Environment Variables
 

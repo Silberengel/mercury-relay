@@ -27,7 +27,7 @@ docker-compose ps
 ### 2. Verify Installation
 
 ```bash
-# Check health
+# Check health (public endpoint - no auth required)
 curl http://localhost:8082/api/v1/health
 
 # Expected response:
@@ -40,6 +40,54 @@ curl http://localhost:8082/api/v1/health
 - **REST API**: `http://localhost:8082`
 - **RabbitMQ Management**: `http://localhost:15672` (guest/guest)
 - **Admin API**: `http://localhost:8081`
+
+## SSH Tunnel Setup
+
+### 1. Upload SSH Key (Requires Nostr Authentication)
+
+```bash
+# First, get a Nostr challenge
+curl http://localhost:8082/api/v1/nostr/challenge
+
+# Then authenticate with your Nostr key
+curl -X POST \
+     -H "Content-Type: application/json" \
+     -d '{
+       "event": {
+         "id": "your_event_id",
+         "pubkey": "your_pubkey",
+         "created_at": 1700000000,
+         "kind": 22242,
+         "tags": [["challenge", "challenge_from_previous_step"]],
+         "content": "",
+         "sig": "your_signature"
+       }
+     }' \
+     http://localhost:8082/api/v1/nostr/auth
+
+# Upload your SSH key
+curl -X POST \
+     -H "Authorization: Nostr <your_auth_token>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "my-tunnel-key",
+       "private_key": "-----BEGIN OPENSSH PRIVATE KEY-----\n...",
+       "public_key": "ssh-rsa AAAAB3NzaC1yc2E...",
+       "key_type": "rsa",
+       "description": "Tunnel key for remote access"
+     }' \
+     http://localhost:8082/api/v1/ssh-keys
+```
+
+### 2. Use SSH Tunnel (Standard SSH Authentication)
+
+```bash
+# Once SSH key is uploaded, use standard SSH authentication
+ssh -i /path/to/your/private/key user@localhost -p 2222
+
+# Or use the tunnel for port forwarding
+ssh -L 8080:localhost:8080 -i /path/to/your/private/key user@localhost -p 2222
+```
 
 ## Kind-Based Filtering
 
