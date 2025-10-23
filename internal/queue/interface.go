@@ -8,4 +8,9 @@ type Queue interface {
 	ConsumeEvents() ([]*models.Event, error)
 	GetQueueStats() (int, error)
 	Close() error
+
+	// Kind-based topic methods
+	ConsumeEventsByKind(kind int) ([]*models.Event, error)
+	GetKindQueueStats(kind int) (int, error)
+	GetAllKindQueueStats() (map[int]int, error)
 }

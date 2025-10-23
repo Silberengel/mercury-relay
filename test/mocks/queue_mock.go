@@ -166,3 +166,80 @@ func (m *MockQueueWithError) GetQueueStats() (int, error) {
 	}
 	return m.MockQueue.GetQueueStats()
 }
+
+// Kind-based topic methods for MockQueue
+
+// ConsumeEventsByKind returns events filtered by kind
+func (m *MockQueue) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	var kindEvents []*models.Event
+	var remainingEvents []*models.Event
+
+	for _, event := range m.events {
+		if event.Kind == kind {
+			kindEvents = append(kindEvents, event)
+		} else {
+			remainingEvents = append(remainingEvents, event)
+		}
+	}
+
+	// Update the queue to remove consumed kind events
+	m.events = remainingEvents
+	m.updateStats()
+
+	return kindEvents, nil
+}
+
+// GetKindQueueStats returns the number of events of a specific kind
+func (m *MockQueue) GetKindQueueStats(kind int) (int, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	count := 0
+	for _, event := range m.events {
+		if event.Kind == kind {
+			count++
+		}
+	}
+	return count, nil
+}
+
+// GetAllKindQueueStats returns stats for all kinds
+func (m *MockQueue) GetAllKindQueueStats() (map[int]int, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	stats := make(map[int]int)
+	for _, event := range m.events {
+		stats[event.Kind]++
+	}
+	return stats, nil
+}
+
+// Kind-based topic methods for MockQueueWithError
+
+// ConsumeEventsByKind returns configured error or filtered events
+func (m *MockQueueWithError) ConsumeEventsByKind(kind int) ([]*models.Event, error) {
+	if m.consumeError != nil {
+		return nil, m.consumeError
+	}
+	return m.MockQueue.ConsumeEventsByKind(kind)
+}
+
+// GetKindQueueStats returns configured error or kind stats
+func (m *MockQueueWithError) GetKindQueueStats(kind int) (int, error) {
+	if m.statsError != nil {
+		return 0, m.statsError
+	}
+	return m.MockQueue.GetKindQueueStats(kind)
+}
+
+// GetAllKindQueueStats returns configured error or all kind stats
+func (m *MockQueueWithError) GetAllKindQueueStats() (map[int]int, error) {
+	if m.statsError != nil {
+		return nil, m.statsError
+	}
+	return m.MockQueue.GetAllKindQueueStats()
+}

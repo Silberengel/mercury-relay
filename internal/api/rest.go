@@ -106,6 +106,11 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 	api.HandleFunc("/health", r.HandleHealth).Methods("GET")                                        // Public health endpoint
 	api.HandleFunc("/stats", r.auth.RequireAuth(r.HandleStats)).Methods("GET")
 
+	// Kind-based topic endpoints
+	api.HandleFunc("/kind/{kind}/events", r.auth.RequireAuth(r.HandleKindEvents)).Methods("GET") // Get events by kind
+	api.HandleFunc("/kind/{kind}/stats", r.auth.RequireAuth(r.HandleKindStats)).Methods("GET")   // Get kind queue stats
+	api.HandleFunc("/kind/stats", r.auth.RequireAuth(r.HandleAllKindStats)).Methods("GET")       // Get all kind queue stats
+
 	// SSH Key Management endpoints
 	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleUploadSSHKey).Methods("POST")
 	api.HandleFunc("/ssh-keys", r.sshKeyManager.HandleListSSHKeys).Methods("GET")
@@ -1278,5 +1283,110 @@ func (r *RESTAPIServer) HandleGetAdmins(w http.ResponseWriter, req *http.Request
 	adminNpubs := r.auth.GetAdminNpubs()
 	r.sendSuccess(w, map[string]interface{}{
 		"admins": adminNpubs,
+	})
+}
+
+// Kind-based topic handlers
+
+// HandleKindEvents returns events from a specific kind queue
+func (r *RESTAPIServer) HandleKindEvents(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	kindStr := vars["kind"]
+
+	kind, err := strconv.Atoi(kindStr)
+	if err != nil {
+		r.sendError(w, "Invalid kind number", http.StatusBadRequest)
+		return
+	}
+
+	// Get limit from query parameter
+	limitStr := req.URL.Query().Get("limit")
+	limit := 10 // default limit
+	if limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+			limit = parsedLimit
+		}
+	}
+
+	// Consume events from kind queue
+	var events []*models.Event
+	for i := 0; i < limit; i++ {
+		kindEvents, err := r.rabbitMQ.ConsumeEventsByKind(kind)
+		if err != nil {
+			log.Printf("Error consuming events from kind %d: %v", kind, err)
+			break
+		}
+		if len(kindEvents) == 0 {
+			break // No more events
+		}
+		events = append(events, kindEvents...)
+	}
+
+	r.sendSuccess(w, map[string]interface{}{
+		"kind":   kind,
+		"events": events,
+		"count":  len(events),
+	})
+}
+
+// HandleKindStats returns statistics for a specific kind queue
+func (r *RESTAPIServer) HandleKindStats(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	kindStr := vars["kind"]
+
+	kind, err := strconv.Atoi(kindStr)
+	if err != nil {
+		r.sendError(w, "Invalid kind number", http.StatusBadRequest)
+		return
+	}
+
+	messageCount, err := r.rabbitMQ.GetKindQueueStats(kind)
+	if err != nil {
+		r.sendError(w, fmt.Sprintf("Failed to get stats for kind %d: %v", kind, err), http.StatusInternalServerError)
+		return
+	}
+
+	r.sendSuccess(w, map[string]interface{}{
+		"kind":          kind,
+		"message_count": messageCount,
+		"queue_name":    fmt.Sprintf("nostr_kind_%d", kind),
+	})
+}
+
+// HandleAllKindStats returns statistics for all kind queues
+func (r *RESTAPIServer) HandleAllKindStats(w http.ResponseWriter, req *http.Request) {
+	stats, err := r.rabbitMQ.GetAllKindQueueStats()
+	if err != nil {
+		r.sendError(w, fmt.Sprintf("Failed to get kind stats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Add kind descriptions
+	kindDescriptions := map[int]string{
+		0:     "Profile metadata",
+		1:     "Short notes/text posts",
+		3:     "Contacts/follow list",
+		7:     "Reactions",
+		10002: "Relay lists",
+	}
+
+	response := make(map[string]interface{})
+	for kind, count := range stats {
+		description := kindDescriptions[kind]
+		if description == "" {
+			description = fmt.Sprintf("Kind %d events", kind)
+		}
+
+		response[fmt.Sprintf("kind_%d", kind)] = map[string]interface{}{
+			"kind":        kind,
+			"description": description,
+			"count":       count,
+			"queue_name":  fmt.Sprintf("nostr_kind_%d", kind),
+		}
+	}
+
+	r.sendSuccess(w, map[string]interface{}{
+		"kind_queues": response,
+		"total_kinds": len(stats),
 	})
 }
