@@ -12,7 +12,7 @@ streaming:
       description: "The Forest - High performance relay"
       features: ["websocket", "http_streaming", "sse"]
       
-    - url: "wss://orlay-relay.imwald.eu"
+    - url: "wss://orly-relay.imwald.eu"
       enabled: true
       priority: 2
       description: "Orlay Relay - European relay"

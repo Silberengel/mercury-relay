@@ -16,7 +16,7 @@ services:
       - REST_API_PORT=8082
       - LOG_LEVEL=info
       - STREAMING_ENABLED=true
-      - UPSTREAM_RELAYS=wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com
+      - UPSTREAM_RELAYS=wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com
       - TOR_ENABLED=false
       - XFTP_ENABLED=false
       - MERCURY_ADMIN_NPUBS=npub1flnpz46qtu3jwpsglzacmjrglnssyaxdvcfe5yf0hg3g4qad9xds2g784j,npub1v30tsz9vw6ylpz63g0a702nj3xa26t3m7p5us8f2y2sd8v6cnsvq465zjx,npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z,npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl

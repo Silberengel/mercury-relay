@@ -15,7 +15,7 @@ echo -e "${GREEN}🐳 Mercury Relay Docker Run Examples${NC}"
 echo "====================================="
 
 # Default configuration
-DEFAULT_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com"
+DEFAULT_RELAYS="wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com"
 
 # Function to run Mercury Relay with custom environment
 run_mercury_relay() {

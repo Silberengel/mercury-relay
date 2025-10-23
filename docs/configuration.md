@@ -73,7 +73,7 @@ streaming:
     - url: "wss://theforest.nostr1.com"
       enabled: true
       priority: 1
-    - url: "wss://orlay-relay.imwald.eu"
+    - url: "wss://orly-relay.imwald.eu"
       enabled: true
       priority: 2
     - url: "wss://nostr.land"

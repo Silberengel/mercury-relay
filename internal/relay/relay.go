@@ -494,6 +494,9 @@ func (s *Server) processEvents(ctx context.Context) {
 				// Broadcast to subscribers
 				s.broadcastEvent(event)
 			}
+
+			// Add delay to prevent tight loop and reduce consumer count
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }

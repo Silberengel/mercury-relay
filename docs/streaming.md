@@ -8,7 +8,7 @@ Mercury Relay is configured to stream from these relays by default:
 
 ### **Primary Relays (Enabled)**
 1. **`wss://theforest.nostr1.com`** - High performance relay
-2. **`wss://orlay-relay.imwald.eu`** - European relay  
+2. **`wss://orly-relay.imwald.eu`** - European relay  
 3. **`wss://nostr.land`** - Community relay
 4. **`wss://nostr21.com`** - Alternative relay
 
@@ -56,7 +56,7 @@ streaming:
     - url: "wss://theforest.nostr1.com"
       enabled: true
       priority: 1
-    - url: "wss://orlay-relay.imwald.eu"
+    - url: "wss://orly-relay.imwald.eu"
       enabled: true
       priority: 2
     - url: "wss://nostr.land"

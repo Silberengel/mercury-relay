@@ -121,44 +121,27 @@ func (r *RabbitMQ) PublishEvent(event *models.Event) error {
 }
 
 func (r *RabbitMQ) ConsumeEvents() ([]*models.Event, error) {
-	msgs, err := r.channel.Consume(
-		r.config.QueueName,
-		"",    // consumer
-		false, // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
-	)
+	// Use Get method to get messages one at a time
+	msg, ok, err := r.channel.Get(r.config.QueueName, false) // false = no auto-ack
 	if err != nil {
-		return nil, fmt.Errorf("failed to register consumer: %w", err)
+		return nil, fmt.Errorf("failed to get message: %w", err)
+	}
+	if !ok {
+		// No messages available
+		return []*models.Event{}, nil
 	}
 
-	var events []*models.Event
-	timeout := time.After(100 * time.Millisecond)
-
-	for {
-		select {
-		case msg := <-msgs:
-			var event models.Event
-			if err := json.Unmarshal(msg.Body, &event); err != nil {
-				log.Printf("Failed to unmarshal event: %v", err)
-				msg.Nack(false, false) // Reject and don't requeue
-				continue
-			}
-
-			events = append(events, &event)
-			msg.Ack(false)
-
-			// Return after getting some events or timeout
-			if len(events) >= 10 {
-				return events, nil
-			}
-
-		case <-timeout:
-			return events, nil
-		}
+	var event models.Event
+	if err := json.Unmarshal(msg.Body, &event); err != nil {
+		log.Printf("Failed to unmarshal event: %v", err)
+		msg.Nack(false, false) // Reject and don't requeue
+		return []*models.Event{}, nil
 	}
+
+	// Acknowledge the message after successful processing
+	msg.Ack(false)
+
+	return []*models.Event{&event}, nil
 }
 
 func (r *RabbitMQ) Close() error {

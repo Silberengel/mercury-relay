@@ -29,7 +29,7 @@ MERCURY_PRIVATE_KEY=nsec1your-private-key-here
 STREAMING_ENABLED=true
 
 # Upstream relays (comma-separated)
-UPSTREAM_RELAYS=wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com
+UPSTREAM_RELAYS=wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com
 ```
 
 ### **Tor and XFTP**
@@ -54,7 +54,7 @@ XFTP_MAX_FILE_SIZE=50MB
 docker run -d --name mercury-relay \
   -p 8080:8080 -p 8081:8081 -p 8082:8082 \
   -e STREAMING_ENABLED=true \
-  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
+  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
   -e MERCURY_ADMIN_NPUBS="npub1flnpz46qtu3jwpsglzacmjrglnssyaxdvcfe5yf0hg3g4qad9xds2g784j,npub1v30tsz9vw6ylpz63g0a702nj3xa26t3m7p5us8f2y2sd8v6cnsvq465zjx,npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z,npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl" \
   mercury-relay
 ```
@@ -85,7 +85,7 @@ docker run -d --name mercury-relay \
 docker run -d --name mercury-relay \
   -p 8080:8080 -p 8081:8081 -p 8082:8082 \
   -e STREAMING_ENABLED=true \
-  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
+  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
   -e TOR_ENABLED=true \
   -e XFTP_ENABLED=true \
   -e MERCURY_ADMIN_NPUBS="npub1flnpz46qtu3jwpsglzacmjrglnssyaxdvcfe5yf0hg3g4qad9xds2g784j,npub1v30tsz9vw6ylpz63g0a702nj3xa26t3m7p5us8f2y2sd8v6cnsvq465zjx,npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z,npub1m4ny6hjqzepn4rxknuq94c2gpqzr29ufkkw7ttcxyak7v43n6vvsajc2jl" \
@@ -100,7 +100,7 @@ docker run -d --name mercury-relay \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
   -e STREAMING_ENABLED=true \
-  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
+  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
   -e LOG_LEVEL=warn \
   -e RATE_LIMIT_PER_MINUTE=200 \
   -e API_KEY="your-secret-api-key" \
@@ -147,7 +147,7 @@ services:
       - "8082:8082"
     environment:
       - STREAMING_ENABLED=${STREAMING_ENABLED:-true}
-      - UPSTREAM_RELAYS=${UPSTREAM_RELAYS:-"wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com"}
+      - UPSTREAM_RELAYS=${UPSTREAM_RELAYS:-"wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com"}
       - TOR_ENABLED=${TOR_ENABLED:-false}
       - XFTP_ENABLED=${XFTP_ENABLED:-false}
     volumes:
@@ -283,7 +283,7 @@ docker run -d --name mercury-relay \
   -v /opt/mercury/data:/app/data \
   -v /opt/mercury/logs:/app/logs \
   -e STREAMING_ENABLED=true \
-  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orlay-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
+  -e UPSTREAM_RELAYS="wss://theforest.nostr1.com,wss://orly-relay.imwald.eu,wss://nostr.land,wss://nostr21.com" \
   -e TOR_ENABLED=true \
   -e XFTP_ENABLED=true \
   -e LOG_LEVEL=warn \

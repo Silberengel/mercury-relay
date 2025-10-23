@@ -17,7 +17,7 @@ echo "=================================="
 # Default upstream relays
 UPSTREAM_RELAYS=(
     "wss://theforest.nostr1.com"
-    "wss://orlay-relay.imwald.eu"
+    "wss://orly-relay.imwald.eu"
     "wss://nostr.land"
     "wss://nostr21.com"
 )

@@ -103,7 +103,7 @@ func (r *RESTAPIServer) Start(ctx context.Context) error {
 	api.HandleFunc("/ebooks", r.auth.RequireAuth(r.HandleEbooks)).Methods("GET")                    // E-book specific endpoint
 	api.HandleFunc("/ebooks/{id}/content", r.auth.RequireAuth(r.HandleEbookContent)).Methods("GET") // E-book content with nested structure
 	api.HandleFunc("/ebooks/{id}/epub", r.auth.RequireAuth(r.HandleEbookEPUB)).Methods("GET")       // Generate EPUB from Nostr book
-	api.HandleFunc("/health", r.auth.RequireAuth(r.HandleHealth)).Methods("GET")
+	api.HandleFunc("/health", r.HandleHealth).Methods("GET")                                        // Public health endpoint
 	api.HandleFunc("/stats", r.auth.RequireAuth(r.HandleStats)).Methods("GET")
 
 	// SSH Key Management endpoints
