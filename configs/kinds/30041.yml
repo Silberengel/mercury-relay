@@ -1,8 +1,8 @@
 # Kind 30041: Publication Content
 name: "Publication Content"
-description: "Actual publication content"
-required_tags: ["d"]
-optional_tags: ["a", "e", "p", "title", "summary", "image"]
+description: "Sections, chapters, or episodes of publications"
+required_tags: ["d", "title"]
+optional_tags: ["wikilink", "a", "e", "p", "t", "summary", "image", "published_on", "published_by", "version", "type"]
 content_validation:
   type: "text"
   max_length: 100000

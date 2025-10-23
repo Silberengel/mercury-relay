@@ -1,6 +1,6 @@
 # Kind 9: Chat Message
 name: "Chat Message"
-description: "Chat message for direct communication"
+description: "Chat message"
 required_tags: []
 optional_tags: ["e", "p", "q"]
 content_validation:

@@ -128,6 +128,56 @@ func NewKindConfigLoader(configPath string) (*KindConfigLoader, error) {
 	return &KindConfigLoader{config: &config}, nil
 }
 
+// NewKindConfigLoaderFromDirectory loads kind configurations from individual YAML files in a directory
+func NewKindConfigLoaderFromDirectory(kindsDir string) (*KindConfigLoader, error) {
+	// Check if directory exists
+	if _, err := os.Stat(kindsDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("kinds directory does not exist: %s", kindsDir)
+	}
+
+	// Read all .yml files in the kinds directory
+	files, err := os.ReadDir(kindsDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read kinds directory: %w", err)
+	}
+
+	config := &NostrEventKindsConfig{
+		EventKinds: make(map[string]EventKindConfig),
+	}
+
+	// Load each YAML file
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".yml") {
+			continue
+		}
+
+		// Extract kind number from filename (e.g., "30041.yml" -> 30041)
+		kindStr := strings.TrimSuffix(file.Name(), ".yml")
+		_, err := strconv.Atoi(kindStr)
+		if err != nil {
+			continue // Skip files that don't have numeric names
+		}
+
+		// Read the YAML file
+		filePath := fmt.Sprintf("%s/%s", kindsDir, file.Name())
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			continue // Skip files that can't be read
+		}
+
+		// Parse the YAML file
+		var kindConfig EventKindConfig
+		if err := yaml.Unmarshal(data, &kindConfig); err != nil {
+			continue // Skip files that can't be parsed
+		}
+
+		// Store the configuration
+		config.EventKinds[kindStr] = kindConfig
+	}
+
+	return &KindConfigLoader{config: config}, nil
+}
+
 func (k *KindConfigLoader) GetKindConfig(kind int) (*EventKindConfig, error) {
 	kindStr := strconv.Itoa(kind)
 	config, exists := k.config.EventKinds[kindStr]
@@ -149,7 +199,7 @@ func (k *KindConfigLoader) ValidateEventKind(eventKind int, content string, tags
 	}
 
 	// Validate tags
-	if err := k.validateTags(config.RequiredTags, config.OptionalTags, tags); err != nil {
+	if err := k.validateTags(config.RequiredTags, tags); err != nil {
 		return fmt.Errorf("tag validation failed: %w", err)
 	}
 
@@ -210,7 +260,7 @@ func (k *KindConfigLoader) validateContent(validation ContentValidation, content
 	return nil
 }
 
-func (k *KindConfigLoader) validateTags(requiredTags, optionalTags []string, tags [][]string) error {
+func (k *KindConfigLoader) validateTags(requiredTags []string, tags [][]string) error {
 	// Check required tags
 	for _, requiredTag := range requiredTags {
 		found := false

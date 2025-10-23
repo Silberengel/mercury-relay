@@ -1,0 +1,18 @@
+# Kind 11: Discussion Threads
+name: "Discussion Threads"
+description: "Discussion threads for conversations"
+required_tags: []
+optional_tags: ["title"]
+content_validation:
+  type: "text"
+  max_length: 10000
+  min_length: 1
+quality_rules:
+  - name: "meaningful_content"
+    weight: 1.0
+    description: "Content should be meaningful for discussion"
+  - name: "has_title"
+    weight: 0.7
+    description: "Should have a title for better organization"
+replaceable: false
+ephemeral: false
